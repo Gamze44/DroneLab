@@ -53,6 +53,16 @@ VARSAYILAN_MODEL: Final[str] = MODELLER[0]
 # DEĞİŞTİRİLEBİLİR: Yanıt için en çok bekleme süresi, saniye.
 ZAMAN_ASIMI_SN: Final[float] = 90.0
 
+# DEĞİŞTİRİLEBİLİR: Sohbette (asistan) modelin "düşünme" seviyesi. Varsayılan seviye (medium)
+# kısa sorularda bile yanıtı onlarca saniye geciktiriyordu; sayılar zaten programın araçlarından
+# geldiği için daha az düşünme yeterli. Değerler Google belgesindeki desteklenen seviyelerdir
+# (3.8-flash "minimal"i desteklemez). Listede olmayan modelde ayar gönderilmez.
+SOHBET_DUSUNME_SEVIYELERI: Final[dict[str, str]] = {
+    "gemini-3.8-flash": "low",
+    "gemini-3.6-flash": "low",
+    "gemini-3.5-flash-lite": "minimal",
+}
+
 AYRINTI_SINIRI: Final[int] = 200
 ULASILAMADI_MESAJI: Final[str] = "Gemini'ye ulaşılamadı. İnternet bağlantınızı kontrol edin."
 BASARISIZ_DURUMLAR: Final[frozenset[str]] = frozenset({"failed", "cancelled"})
@@ -259,12 +269,17 @@ class GeminiSaglayicisi(ArastirmaSaglayicisi):
             "system_instruction": sistem_talimati,
             "store": False,
         }
+        ayar: dict[str, Any] = {}
+        if self.model in SOHBET_DUSUNME_SEVIYELERI:
+            ayar["thinking_level"] = SOHBET_DUSUNME_SEVIYELERI[self.model]
         if araclar:
             # Araç tanımları sohbette saklanmaz; her istekte yeniden verilir.
             govde["tools"] = [
                 {"type": "function", "name": a.ad, "description": a.aciklama, "parameters": a.parametreler} for a in araclar
             ]
-            govde["generation_config"] = {"tool_choice": arac_kullanimi}
+            ayar["tool_choice"] = arac_kullanimi
+        if ayar:
+            govde["generation_config"] = ayar
         if akis:
             govde["stream"] = True
             return self._akisi_coz(self._akis_gonder(govde))

@@ -14,7 +14,15 @@ import pytest
 
 from arastirma.gemini import GeminiSaglayicisi, SseOkuyucu
 from arastirma.istemci import YapayZekaIstemcisi
-from arastirma.model_secici import HEPSI_DOLU_MESAJI, OTOMATIK_MODEL, OTOMATIK_SIRA, ModelSecici
+from arastirma.model_secici import (
+    HEPSI_DOLU_MESAJI,
+    OTOMATIK_MODEL,
+    OTOMATIK_SIRA,
+    YAVAS_ESIGI_SN,
+    YAVASLIK_SURESI_SN,
+    YOGUNLUK_DINLENME_SN,
+    ModelSecici,
+)
 from arastirma.saglayici import ArastirmaSaglayicisi
 from arastirma.sohbet import (
     ARAC_SERBEST,
@@ -362,7 +370,7 @@ def test_kota_dolunca_siradaki_model_ve_gun_boyu_dinlenme(tmp_path: Path) -> Non
     assert yz.sayac.bugun() == 3  # başarısız deneme de sayılır
 
 
-def test_dakikalik_sinir_kisa_dinlenme_ve_yogunlukta_dinlenme_yok(tmp_path: Path) -> None:
+def test_dakikalik_sinir_ve_yogunlukta_gecici_dinlenme(tmp_path: Path) -> None:
     ilk, ikinci, _ = OTOMATIK_SIRA
     saat = [0.0]
     secici = ModelSecici(saat=lambda: saat[0])
@@ -370,11 +378,38 @@ def test_dakikalik_sinir_kisa_dinlenme_ve_yogunlukta_dinlenme_yok(tmp_path: Path
     assert ilk not in secici.adaylar(OTOMATIK_MODEL)
     saat[0] = 120.0
     assert secici.adaylar(OTOMATIK_MODEL)[0] == ilk
+    # Aşırı yüklü model her soruda boşuna denenmesin: birkaç dakika dinlenir.
     assert secici.basarisiz(ikinci, YapayZekaHatasi("yoğun", 503)) is True
+    assert ikinci not in secici.adaylar(OTOMATIK_MODEL)
+    saat[0] = 120.0 + YOGUNLUK_DINLENME_SN + 1
     assert ikinci in secici.adaylar(OTOMATIK_MODEL)
     assert secici.basarisiz(ikinci, YapayZekaHatasi("ulaşılamadı", 504)) is False  # internet yok: model değişmez
     assert secici.basarisiz(ikinci, YapayZekaHatasi("bulunamadı", 404)) is True
     assert ikinci not in secici.adaylar(OTOMATIK_MODEL)
+
+
+def test_yavas_model_sona_alinir_hizlanan_one_doner() -> None:
+    ilk, ikinci, ucuncu = OTOMATIK_SIRA
+    saat = [0.0]
+    secici = ModelSecici(saat=lambda: saat[0])
+    secici.sure_bildir(ilk, YAVAS_ESIGI_SN + 30)
+    assert secici.adaylar(OTOMATIK_MODEL) == [ikinci, ucuncu, ilk]  # yavaş model yine yedek olarak durur
+    secici.sure_bildir(ilk, 2.0)
+    assert secici.adaylar(OTOMATIK_MODEL) == [ilk, ikinci, ucuncu]
+    secici.sure_bildir(ikinci, YAVAS_ESIGI_SN + 1)
+    saat[0] = YAVASLIK_SURESI_SN + 1
+    assert secici.adaylar(OTOMATIK_MODEL) == [ilk, ikinci, ucuncu]  # süre dolunca eski sırasına döner
+
+
+def test_istemci_yavas_modeli_bildirir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import arastirma.istemci as istemci_modulu
+
+    zaman = iter([0.0, YAVAS_ESIGI_SN + 5])
+    monkeypatch.setattr(istemci_modulu.time, "monotonic", lambda: next(zaman))
+    sahte = ModeleGoreSahte({})
+    yz = _yz(tmp_path, sahte)
+    yz.istek("s", "i", {})
+    assert yz.model_secici.adaylar(OTOMATIK_MODEL)[-1] == OTOMATIK_SIRA[0]
 
 
 def test_elle_secilen_model_degismez_ve_hepsi_doluysa_turkce_hata(tmp_path: Path) -> None:
@@ -445,6 +480,8 @@ def test_gemini_akisi_arac_cagrisi_ve_dusunce_imzasi() -> None:
     govde = gonderilen[0]
     assert govde["stream"] is True and govde["store"] is False
     assert govde["tools"][0]["type"] == "function" and govde["generation_config"]["tool_choice"] == ARAC_SERBEST
+    # Sohbette düşünme seviyesi düşük (varsayılan "medium" yanıtı onlarca saniye geciktiriyordu).
+    assert govde["generation_config"]["thinking_level"] == "low"
     assert SAHTE_ANAHTAR not in json.dumps(govde)
 
 

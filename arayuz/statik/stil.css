@@ -720,6 +720,8 @@ body.asistan-acik .asistan-yuvarlak { opacity: 0; pointer-events: none; }
 .asistan-baslik-satiri { font-weight: 600; }
 .asistan-araclar { font-family: var(--mono); font-size: 0.72rem; color: var(--taktik); letter-spacing: 0.04em; }
 .asistan-araclar div::before { content: "› "; }
+.asistan-araclar .asistan-bekleme { color: var(--soluk-yazi); }
+.asistan-araclar .asistan-bekleme:empty { display: none; }
 .asistan-not { font-size: 0.75rem; color: var(--soluk-yazi); margin-top: 6px; font-family: var(--mono); }
 .asistan-mesaj.yaziyor .asistan-mesaj-govde::after { content: "▍"; color: var(--taktik); animation: led-yanip-son 1s step-end infinite; }
 

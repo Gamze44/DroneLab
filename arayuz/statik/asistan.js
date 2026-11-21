@@ -18,6 +18,11 @@
   const ACIK_BASLAT_PARAMETRESI = "asistan";
   const ACIK_BASLAT_DEGERI = "ac";
   const KISAYOL_TUSU = "k";
+  // DEĞİŞTİRİLEBİLİR: Yanıt bu kadar saniye gecikirse balonda geçen süre gösterilir; YAVAS_UYARI_SN'den
+  // sonra modelin yavaş olduğu da yazılır (ekran donmuş sanılmasın).
+  const BEKLEME_GOSTERME_SN = 2;
+  const YAVAS_UYARI_SN = 20;
+  const SANIYE_MS = 1000;
   const YETKISIZ = 401;
   const SSE_AYRACI = "\n\n";
   const SSE_VERI_ONEKI = "data: ";
@@ -311,6 +316,20 @@
     const istek = new AbortController();
     durum.istek = istek;
     istekSuruyor(true);
+    // Bekleme göstergesi: ilk metin, öneri veya hata gelene kadar geçen süreyi yazar.
+    const bekleme = ogeAc("div", "asistan-bekleme");
+    balon.araclar.append(bekleme);
+    const baslangic = Date.now();
+    const sayac = setInterval(() => {
+      const sn = Math.round((Date.now() - baslangic) / SANIYE_MS);
+      if (sn >= BEKLEME_GOSTERME_SN) {
+        bekleme.textContent = `Yanıt hazırlanıyor… ${sn} sn${sn >= YAVAS_UYARI_SN ? " (Gemini şu an yavaş yanıt veriyor)" : ""}`;
+      }
+    }, SANIYE_MS);
+    const beklemeyiBitir = () => {
+      clearInterval(sayac);
+      bekleme.remove();
+    };
     try {
       const govde = { mesaj: metin, drone_kimlik: acikDroneKimligi(), ekran: ekran().anahtar };
       const yanit = await fetch(SOHBET_ADRESI, { ...jsonIstegi("POST", govde), signal: istek.signal });
@@ -319,17 +338,19 @@
         throw { ...veri, kod: yanit.status };
       }
       await akisiOku(yanit, (olay) => {
+        if (["metin", "oneri", "hata", "bitti"].includes(olay.tur)) beklemeyiBitir();
         if (olay.tur === "metin") {
           yazilan += olay.metin;
           bicimliYaz(balon.govde, yazilan);
         } else if (olay.tur === "arac") {
-          balon.araclar.append(ogeAc("div", "", `${olay.aciklama}…`));
+          // Araç satırları bekleme göstergesinin üstüne eklenir; gösterge hep en altta kalır.
+          balon.araclar.insertBefore(ogeAc("div", "", `${olay.aciklama}…`), bekleme.parentNode ? bekleme : null);
         } else if (olay.tur === "oneri") {
           balon.append(oneriKarti(olay.oneri));
         } else if (olay.tur === "sifirla") {
           yazilan = "";
           balon.govde.replaceChildren();
-          balon.araclar.replaceChildren();
+          balon.araclar.replaceChildren(bekleme);
           for (const k of balon.querySelectorAll(".asistan-oneri")) k.remove();
         } else if (olay.tur === "hata") {
           hataKutusu(balon, olay);
@@ -346,6 +367,7 @@
         hataKutusu(balon, veri);
       }
     } finally {
+      beklemeyiBitir();
       durum.istek = null;
       balon.classList.remove("yaziyor");
       if (!yazilan && !balon.querySelector(".asistan-oneri, .kutu-hata, .asistan-not")) balon.remove();

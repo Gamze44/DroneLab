@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from http import HTTPStatus
 import logging
 from pathlib import Path
+import time
 from typing import Any, Final
 
 from arastirma.anahtar import AnahtarDeposu
@@ -132,8 +133,10 @@ class YapayZekaIstemcisi:
         son_hata: YapayZekaHatasi | None = None
         for model in self._adaylar(ayarlar):
             kullanilan = self.sayac.harca(ayarlar.gunluk_sinir)
+            baslangic = time.monotonic()
             try:
                 veri = self._uretici(anahtar, model).json_uret(sistem_talimati, istem, sema)
+                self.model_secici.sure_bildir(model, time.monotonic() - baslangic)
             except YapayZekaHatasi as hata:
                 if not self.model_secici.basarisiz(model, hata):
                     raise
@@ -166,12 +169,16 @@ class YapayZekaIstemcisi:
         for model in self._adaylar(ayarlar):
             kullanilan = self.sayac.harca(ayarlar.gunluk_sinir)
             olay_verildi = False
+            baslangic = time.monotonic()
             try:
                 saglayici = self._uretici(anahtar, model)
                 for olay in saglayici.sohbet_et(sistem_talimati, girdiler, araclar, akis, arac_kullanimi):
                     if olay.tur == OLAY_BITTI:
                         olay.model, olay.bugun_kullanilan, olay.gunluk_sinir = model, kullanilan, ayarlar.gunluk_sinir
                         self._kullanimi_kaydet(model, olay.kullanim)
+                        sure = time.monotonic() - baslangic
+                        self.model_secici.sure_bildir(model, sure)
+                        gunluk.info("Gemini yanıtı (%s) %.1f sn sürdü.", model, sure)
                     olay_verildi = True
                     yield olay
                 return

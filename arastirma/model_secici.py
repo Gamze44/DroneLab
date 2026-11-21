@@ -6,9 +6,10 @@ doldurduysa (429), aşırı yüklüyse (503) veya bulunamazsa (404) aynı istek 
 bir sonraki modelle tekrarlanır. Böylece kullanıcı model seçmekle uğraşmaz ve bir modelin
 ücretsiz kotası dolduğunda asistan çalışmaya devam eder.
 
-Gereksiz başarısız istek atmamak için:
+Gereksiz başarısız istek atmamak ve kullanıcıyı bekletmemek için:
     - günlük kotası dolan (veya hiç bulunamayan) model o gün bir daha denenmez,
-    - dakikalık hız sınırına takılan model kısa bir süre dinlendirilir,
+    - dakikalık hız sınırına takılan veya aşırı yüklü (503) model bir süre dinlendirilir,
+    - yanıtı çok uzun süren model bir süre sıranın sonuna alınır (hızlı olan öne geçer),
     - internet bağlantısı yoksa model değiştirilmez (hepsi aynı hatayı verir).
 Durum bellekte tutulur; program yeniden açılınca sıfırlanır.
 """
@@ -35,6 +36,13 @@ YEDEGE_GECILEN_KODLAR: Final[frozenset[int]] = frozenset(
 )
 # DEĞİŞTİRİLEBİLİR: Dakikalık hız sınırına takılan model bu kadar saniye denenmez.
 KISA_DINLENME_SN: Final[float] = 60.0
+# DEĞİŞTİRİLEBİLİR: Aşırı yüklü (503) model bu kadar saniye denenmez; her soruda boşuna
+# bir istek harcanıp sonra sıradakine geçilmesin diye.
+YOGUNLUK_DINLENME_SN: Final[float] = 300.0
+# DEĞİŞTİRİLEBİLİR: Yanıtı bu kadar saniyeden uzun süren model "yavaş" sayılır ve
+# YAVASLIK_SURESI_SN boyunca sıranın sonuna alınır (yine de yedek olarak denenebilir).
+YAVAS_ESIGI_SN: Final[float] = 20.0
+YAVASLIK_SURESI_SN: Final[float] = 600.0
 # Google'ın 429 mesajında günlük kotayı belirten ifadeler (boşluksuz, küçük harfle aranır).
 GUNLUK_KOTA_IPUCLARI: Final[tuple[str, ...]] = ("perday", "per_day", "daily")
 HEPSI_DOLU_MESAJI: Final[str] = (
@@ -65,6 +73,7 @@ class ModelSecici:
         self._bugun = bugun
         self._gunluk_dinlenen: dict[str, str] = {}
         self._kisa_dinlenen: dict[str, float] = {}
+        self._yavas: dict[str, float] = {}
         self._kilit = threading.Lock()
 
     def adaylar(self, tercih: str) -> list[str]:
@@ -74,13 +83,30 @@ class ModelSecici:
         Parametreler:
             tercih: Ayarlardaki model; OTOMATIK_MODEL ise otomatik sıra kullanılır.
         Dönüş:
-            Elle seçilmiş modelde yalnızca o model; otomatikte dinlenmede olmayanlar
-            (hepsi dinlenmedeyse boş liste).
+            Elle seçilmiş modelde yalnızca o model; otomatikte dinlenmede olmayanlar,
+            son zamanlarda yavaş yanıt verenler sona alınarak (hepsi dinlenmedeyse boş liste).
         """
         if tercih != OTOMATIK_MODEL:
             return [tercih]
         with self._kilit:
-            return [m for m in self._sira if not self._dinlenmede_mi(m)]
+            hazir = [m for m in self._sira if not self._dinlenmede_mi(m)]
+            simdi = self._saat()
+            # Sıralama kararlıdır: yavaş olmayanlar kendi sırasında öne, yavaşlar arkaya.
+            return sorted(hazir, key=lambda m: self._yavas.get(m, 0.0) > simdi)
+
+    def sure_bildir(self, model: str, sure_sn: float) -> None:
+        """
+        Başarılı bir yanıtın süresini bildirir; uzun sürdüyse model bir süre sona alınır.
+
+        Parametreler:
+            model: Yanıtı veren model.
+            sure_sn: İstekten yanıtın tamamlanmasına kadar geçen süre, saniye.
+        """
+        with self._kilit:
+            if sure_sn > YAVAS_ESIGI_SN:
+                self._yavas[model] = self._saat() + YAVASLIK_SURESI_SN
+            else:
+                self._yavas.pop(model, None)
 
     def basarisiz(self, model: str, hata: YapayZekaHatasi) -> bool:
         """
@@ -99,7 +125,9 @@ class ModelSecici:
                 self._gunluk_dinlenen[model] = self._bugun()
             elif hata.http_kodu == HTTPStatus.TOO_MANY_REQUESTS:
                 self._kisa_dinlenen[model] = self._saat() + KISA_DINLENME_SN
-            # 503 (aşırı yük) geçicidir: dinlendirilmez, yalnızca bu istekte sıradakine geçilir.
+            else:
+                # 503 (aşırı yük) geçicidir ama birkaç dakika sürer; o süre boyunca denenmez.
+                self._kisa_dinlenen[model] = self._saat() + YOGUNLUK_DINLENME_SN
         return True
 
     def _dinlenmede_mi(self, model: str) -> bool:
