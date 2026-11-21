@@ -12,7 +12,7 @@ Drone ve şasi API uçları.
     PUT    /api/dronelar/{kimlik}/sasi/parcalar       -> parçalı şasi: parça rolü ve adedi
     POST   /api/dronelar/{kimlik}/sasi/dingil-hesapla -> parçalı şasi: dingili gövde ve koldan tahmin et (kaydetmez)
     PUT    /api/dronelar/{kimlik}/sasi/dingil         -> dingil mesafesini kaydet / sil
-    PUT    /api/dronelar/{kimlik}/hedefler     -> uçuş süresi / yük / bütçe hedefleri
+    PUT    /api/dronelar/{kimlik}/hedefler     -> uçuş süresi / yük / bütçe / itki-ağırlık hedefleri
 
 Uçlar bilerek senkron (def) yazıldı: dosya okuma işlemci yoğun olduğu için
 FastAPI bunları ayrı iş parçacığında çalıştırır ve sunucu donmaz.
@@ -81,6 +81,7 @@ class HedefIstegi(BaseModel):
     ucus_suresi_dk: float | None = None
     yuk_g: float | None = None
     butce_tl: float | None = None
+    itki_agirlik: float | None = None
 
 
 class ParcaIstegi(BaseModel):
@@ -306,7 +307,9 @@ def drone_rotalarini_olustur(servis: DroneServisi) -> APIRouter:
     @rotalar.put("/dronelar/{kimlik}/hedefler")
     def hedefleri_kaydet(kimlik: Kimlik, istek: HedefIstegi) -> dict[str, Any]:
         """Drone hedeflerini (uçuş süresi, yük, bütçe) kaydeder."""
-        hedefler = DroneHedefleri(ucus_suresi_dk=istek.ucus_suresi_dk, yuk_g=istek.yuk_g, butce_tl=istek.butce_tl)
+        hedefler = DroneHedefleri(
+            ucus_suresi_dk=istek.ucus_suresi_dk, yuk_g=istek.yuk_g, butce_tl=istek.butce_tl, itki_agirlik=istek.itki_agirlik
+        )
         return hedef_sozlugu(servis.hedefleri_kaydet(kimlik, hedefler))
 
     return rotalar

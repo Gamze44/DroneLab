@@ -278,8 +278,8 @@
         <section class="kart">
           <h2>Hedefler</h2>
           <p id="hedef-drone-bilgisi" class="soluk"></p>
-          <p class="soluk">Hepsi isteğe bağlı. Yük toplam ağırlığa eklenir; uçuş süresi hedefi uçuş hesabında,
-            bütçe maliyet sekmesinde (alınacaklarla) karşılaştırılır. Öneri isterken Gemini'ye de bildirilir.</p>
+          <p class="soluk">Hepsi isteğe bağlı. Yük toplam ağırlığa eklenir; uçuş süresi ve itki/ağırlık hedefi uçuş
+            hesabında, bütçe maliyet sekmesinde (alınacaklarla) karşılaştırılır. Öneri isterken Gemini'ye de bildirilir.</p>
           <form id="hedef-formu" class="form-izgara">
             <label for="hd-ucus">İstenen en az uçuş süresi (dk)</label>
             <input type="number" id="hd-ucus" min="0.1" step="any" placeholder="girilmedi">
@@ -287,7 +287,10 @@
             <input type="number" id="hd-yuk" min="0" step="any" placeholder="yok">
             <label for="hd-butce">Bütçe (TL, alınacak parçalar için)</label>
             <input type="number" id="hd-butce" min="1" step="any" placeholder="girilmedi">
+            <label for="hd-oran">İstenen en az itki/ağırlık oranı</label>
+            <input type="number" id="hd-oran" min="1.1" max="30" step="any" aria-describedby="hd-oran-aciklama">
           </form>
+          <p id="hd-oran-aciklama" class="soluk"></p>
           <div class="satir" style="margin-top:16px">
             <button type="submit" form="hedef-formu" id="hd-kaydet">Kaydet</button>
             <span id="hedef-durumu" class="soluk"></span>

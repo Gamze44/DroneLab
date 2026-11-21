@@ -106,6 +106,8 @@ class OneriIstemiOlusturucu:
                 satirlar.append(f"Taşınacak yük: {hedefler.yuk_g:g} g")
             if hedefler.butce_tl is not None:
                 satirlar.append(f"Toplam parça bütçesi: {hedefler.butce_tl:g} TL (fiyat yazma, yalnızca bütçeye uygun seç)")
+            if hedefler.itki_agirlik is not None:
+                satirlar.append(f"Hedef itki/ağırlık oranı: en az {hedefler.itki_agirlik:g}")
         if sartname_maddeleri:
             satirlar.append("Yarışma şartnamesinin uyulması zorunlu kuralları:")
             satirlar += [f"- {madde_metni(m)}" for m in sartname_maddeleri]

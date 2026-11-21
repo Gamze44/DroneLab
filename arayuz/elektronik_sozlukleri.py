@@ -118,6 +118,9 @@ def ucus_sozlugu(u: UcusOzeti) -> dict[str, Any]:
         "itki_agirlik_orani": hesap_degeri_sozlugu(u.itki_agirlik_orani),
         "hedef_itki_agirlik": u.hedef_itki_agirlik,
         "hedefe_ulasiyor_mu": u.hedefe_ulasiyor_mu,
+        # Arayüz hedefin kaynağını yazabilsin ("senin hedefin" / "kullanım amacına göre").
+        "hedef_itki_agirlik_elle_mi": u.hedef_itki_agirlik_elle_mi,
+        "amac_hedef_itki_agirlik": u.amac_hedef_itki_agirlik,
         "asili_gaz_yuzde": hesap_degeri_sozlugu(u.asili_gaz_yuzde),
         "asili_akim_a": hesap_degeri_sozlugu(u.asili_akim_a),
         "toplam_maks_akim_a": hesap_degeri_sozlugu(u.toplam_maks_akim_a),
@@ -135,4 +138,4 @@ def sasi_gorunumu_sozlugu(g: SasiGorunumu | None) -> dict[str, Any] | None:
 
 def hedef_sozlugu(h: DroneHedefleri) -> dict[str, Any]:
     """Drone hedeflerini sözlüğe çevirir."""
-    return {"ucus_suresi_dk": h.ucus_suresi_dk, "yuk_g": h.yuk_g, "butce_tl": h.butce_tl}
+    return {"ucus_suresi_dk": h.ucus_suresi_dk, "yuk_g": h.yuk_g, "butce_tl": h.butce_tl, "itki_agirlik": h.itki_agirlik}

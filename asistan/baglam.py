@@ -94,7 +94,9 @@ class BaglamToplayici:
             f"İtki/ağırlık: {_deger(ozet.ucus.itki_agirlik_orani)}. Uçuş süresi: {_deger(ozet.ucus.ucus_suresi_dk, ' dk')}.",
             "Uyum: " + ", ".join(f"{sayilar[durum]} {durum.value}" for durum in UyumDurumu) + ".",
             f"Hedefler: uçuş süresi {sayi_yaz(h.ucus_suresi_dk) if h.ucus_suresi_dk else YOK} dk; "
-            f"yük {sayi_yaz(h.yuk_g) if h.yuk_g else YOK} g; bütçe {sayi_yaz(h.butce_tl) if h.butce_tl else YOK} TL.",
+            f"yük {sayi_yaz(h.yuk_g) if h.yuk_g else YOK} g; bütçe {sayi_yaz(h.butce_tl) if h.butce_tl else YOK} TL; "
+            f"itki/ağırlık hedefi {sayi_yaz(ozet.ucus.hedef_itki_agirlik)} "
+            f"({'kullanıcı girdi' if ozet.ucus.hedef_itki_agirlik_elle_mi else 'kullanım amacına göre varsayılan'}).",
             f"Şartname: \"{sartname.ad}\" bağlı." if sartname else "Şartname: bağlı değil.",
             "Ayrıntı (parça listesi, uyum açıklamaları, uçuş hesabı, şartname maddeleri) için araçları kullan.",
         ]

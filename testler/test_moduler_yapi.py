@@ -68,7 +68,7 @@ def test_maliyet_kalemleri_kimligini_ve_eksik_kodunu_tasir(istemci: TestClient) 
 def test_hedefler_ucu_ayni_adreste(istemci: TestClient) -> None:
     kimlik = _drone(istemci)
     yanit = istemci.put(f"/api/dronelar/{kimlik}/hedefler", json={"ucus_suresi_dk": 6, "yuk_g": 50})
-    assert yanit.json() == {"ucus_suresi_dk": 6, "yuk_g": 50, "butce_tl": None}
+    assert yanit.json() == {"ucus_suresi_dk": 6, "yuk_g": 50, "butce_tl": None, "itki_agirlik": None}
     assert istemci.put("/api/dronelar/999/hedefler", json={}).status_code == 404
 
 

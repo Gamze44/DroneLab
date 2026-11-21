@@ -1,4 +1,4 @@
-// "Hedefler ve itki" sekmesi: drone hedefleri (uçuş süresi, yük, bütçe) ve
+// "Hedefler ve itki" sekmesi: drone hedefleri (uçuş süresi, yük, bütçe, itki/ağırlık) ve
 // drone'daki motorların itki tablosu. elektronik.js'ten sonra yüklenir
 // (elektronikOzeti ve elektronikOzetiniYenile oradadır).
 "use strict";
@@ -20,6 +20,13 @@ function hedeflerSekmesiniAc() {
   $("hd-ucus").value = h.ucus_suresi_dk ?? "";
   $("hd-yuk").value = h.yuk_g ?? "";
   $("hd-butce").value = h.butce_tl ?? "";
+  $("hd-oran").value = h.itki_agirlik ?? "";
+  // Boş bırakılırsa kullanım amacına göre varsayılan hedef geçerli; kutuda ve açıklamada gösterilir.
+  const varsayilan = sayiBicimle(elektronikOzeti.ucus.amac_hedef_itki_agirlik, 1);
+  $("hd-oran").placeholder = `boşsa ${varsayilan}`;
+  $("hd-oran-aciklama").textContent =
+    `Boş bırakırsan "${mevcutDrone.amac}" amacına göre ${varsayilan} hedeflenir. Sakin uçuş ve çekim için 2–3, ` +
+    "freestyle için 4–8, yarış için 8 ve üstü yaygındır. 2'nin altı güvenli kalkış için önerilmez.";
   // Drone bilgisi drone.js'teki mevcutDrone'dan okunur; ekrandaki metin değişse de bozulmaz.
   $("hedef-drone-bilgisi").textContent = `Drone: ${droneTanimi(mevcutDrone)} · ${elektronikOzeti.motor_sayisi} motor`;
   goster("hedef-hatasi", false);
@@ -42,6 +49,7 @@ $("hedef-formu").addEventListener("submit", async (olay) => {
       ucus_suresi_dk: girdiSayisiOku("hd-ucus", "Uçuş süresi"),
       yuk_g: girdiSayisiOku("hd-yuk", "Yük"),
       butce_tl: girdiSayisiOku("hd-butce", "Bütçe"),
+      itki_agirlik: girdiSayisiOku("hd-oran", "İtki/ağırlık hedefi"),
     };
     await istekGonder(`/api/dronelar/${droneKimligi}/hedefler`, jsonIstegi("PUT", govde));
     $("hedef-durumu").textContent = "Kaydedildi.";

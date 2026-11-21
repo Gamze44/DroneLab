@@ -202,10 +202,15 @@ CREATE TABLE IF NOT EXISTS sasi_parcalari (
 );
 """
 
+# Sürüm 9: drone başına itki/ağırlık hedefi (boşsa kullanım amacına göre varsayılan kullanılır).
+SEMA_V9: Final[str] = """
+ALTER TABLE drone_hedefleri ADD COLUMN itki_agirlik REAL;
+"""
+
 # Sürüm numarası -> o sürüme geçmek için çalıştırılacak SQL. Yeni sürüm eklenince
 # buraya bir satır eklenir; mevcut satırlar asla değiştirilmez.
 GOCLER: Final[dict[int, str]] = {
-    1: SEMA_V1, 2: SEMA_V2, 3: SEMA_V3, 4: SEMA_V4, 5: SEMA_V5, 6: SEMA_V6, 7: SEMA_V7, 8: SEMA_V8,
+    1: SEMA_V1, 2: SEMA_V2, 3: SEMA_V3, 4: SEMA_V4, 5: SEMA_V5, 6: SEMA_V6, 7: SEMA_V7, 8: SEMA_V8, 9: SEMA_V9,
 }
 SEMA_SURUMU: Final[int] = max(GOCLER)
 

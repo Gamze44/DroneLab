@@ -124,7 +124,7 @@ Sunucu yalnızca `127.0.0.1` adresinden erişilebilir (ağdaki diğer cihazlar g
 | **Ayarlar** | Gemini anahtarı (yalnızca var/yok gösterilir), model, günlük sınır, bugünkü kullanım; şartname kütüphanesi |
 | 01 Şasi | Dosya veya parçalı şasi zip'i yükleme (parça görevi ve adedi tablosu), birim onayı, ölçüler, **dingil mesafesi** (elle ya da gövde ve koldan hesaplayıp onaylayarak), **üstten görünüş** (motor yerleri, pervaneler, sığabilecek en büyük pervane), elle ağırlık |
 | 02 Elektronik | Zorunlu parça çipleri, ağırlık özeti, parça listesi (adet / durum), parça formu, **✨ Öner** paneli |
-| 03 Hedefler ve itki | Uçuş süresi, yük ve bütçe hedefleri; motor itki tablosu girişi |
+| 03 Hedefler ve itki | Uçuş süresi, yük, bütçe ve itki/ağırlık hedefleri (boşsa amaca göre varsayılan); motor itki tablosu girişi |
 | 04 Uyum kontrolleri | **Bağlantı şeması** (renkli çizgiler) ve K1–K13 listesi |
 | 05 Uçuş hesabı | **Göstergeler** (itki/ağırlık, uçuş süresi, asılı gaz), **ağırlık dağılımı**, hesap tablosu |
 | 06 Maliyet | Toplamlar, bütçe karşılaştırması, kur bilgisi, fiyat tablosu |
@@ -192,6 +192,7 @@ veri/                      Veritabanı, şasi ve şartname dosyaları, anahtar, 
 - Motorun itki tablosu varsa değerler tablodan okunur; pilin gerilimine en yakın satırlar seçilir.
 - Tablo yoksa itki T = C_T·ρ·n²·D⁴ ile, asılı kalma gücü momentum teorisiyle tahmin edilir.
 - Uçuş süresi = kapasitenin %80'i / (asılı akım × uçuş tarzı katsayısı); her zaman tahminidir.
+- İtki/ağırlık hedefi: Hedefler sekmesinde girildiyse o; boşsa kullanım amacına göre (yarış 7, freestyle 5, çekim ve yük 2, diğerleri 2; `elektronik/hesap/katsayilar.py`).
 
 **Şasiden pervane tahmini**
 
@@ -240,6 +241,7 @@ uygulanır; kayıtlı dronelar kaybolmaz.
 | 6 | Şartnameler, maddeleri, drone–şartname bağı |
 | 7 | DroneLab Asistan sohbet geçmişi ve değişiklik önerileri |
 | 8 | Parçalı şasinin parçaları (görev, adet, geometri) |
+| 9 | Drone başına itki/ağırlık hedefi |
 
 ## 10. Bağımlılıklar
 

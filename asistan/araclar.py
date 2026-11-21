@@ -70,6 +70,10 @@ _DEGISIKLIK_SEMASI: Final[dict[str, Any]] = {
             "ucus_suresi_dk": {"type": "number", "description": "Yeni uçuş süresi hedefi, dakika (hedef_degistir)."},
             "yuk_g": {"type": "number", "description": "Yeni yük hedefi, gram (hedef_degistir)."},
             "butce_tl": {"type": "number", "description": "Yeni bütçe, TL (hedef_degistir)."},
+            "itki_agirlik": {
+                "type": "number",
+                "description": "Yeni itki/ağırlık hedefi, birimsiz, 1'den büyük (hedef_degistir).",
+            },
         },
         "required": ["islem"],
     },
@@ -104,7 +108,8 @@ def _agirlik(a: AgirlikOzeti) -> dict[str, Any]:
 def _ucus(u: UcusOzeti) -> dict[str, Any]:
     return {
         "toplam_itki_g": _hesap(u.toplam_itki_g), "itki_agirlik_orani": _hesap(u.itki_agirlik_orani),
-        "hedef_itki_agirlik": u.hedef_itki_agirlik, "asili_gaz_yuzde": _hesap(u.asili_gaz_yuzde),
+        "hedef_itki_agirlik": u.hedef_itki_agirlik, "hedef_itki_agirlik_elle_mi": u.hedef_itki_agirlik_elle_mi,
+        "asili_gaz_yuzde": _hesap(u.asili_gaz_yuzde),
         "asili_akim_a": _hesap(u.asili_akim_a), "toplam_maks_akim_a": _hesap(u.toplam_maks_akim_a),
         "ucus_suresi_dk": _hesap(u.ucus_suresi_dk), "hedef_ucus_suresi_dk": u.hedef_ucus_suresi_dk,
         "notlar": u.notlar,

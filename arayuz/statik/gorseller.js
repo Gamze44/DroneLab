@@ -178,7 +178,7 @@ function yayGosterge(baslik, h) {
 function ucusGostergeleriniCiz() {
   const u = elektronikOzeti.ucus;
   $("ucus-gostergeleri").replaceChildren(
-    cubukGosterge("İtki / ağırlık", u.itki_agirlik_orani, "", ORAN_BASAMAK, u.hedef_itki_agirlik, " · hedef kullanım amacına göre"),
+    cubukGosterge("İtki / ağırlık", u.itki_agirlik_orani, "", ORAN_BASAMAK, u.hedef_itki_agirlik, ` · ${hedefKaynagiMetni(u)}`),
     cubukGosterge("Uçuş süresi", u.ucus_suresi_dk, " dk", SURE_BASAMAK, u.hedef_ucus_suresi_dk),
     yayGosterge("Asılı kalma gazı", u.asili_gaz_yuzde),
   );

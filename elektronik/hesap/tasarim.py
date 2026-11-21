@@ -56,7 +56,7 @@ class TasarimHesaplayici:
             drone: Drone (tür, amaç ve elle girilen şasi ağırlığı buradan okunur).
             parca_adetleri: (parça, adet) listesi.
             sasi_olculeri: Birim onaylanmış şasi ölçüleri; yoksa None.
-            hedefler: Drone hedefleri (yük ağırlığa, uçuş süresi hedefi uçuş hesabına girer).
+            hedefler: Drone hedefleri (yük ağırlığa; uçuş süresi ve itki/ağırlık hedefi uçuş hesabına girer).
         Dönüş:
             TasarimSonucu.
         """
@@ -66,6 +66,7 @@ class TasarimHesaplayici:
             agirlik=agirlik,
             uyum=self._uyum.kontrol_et(parca_adetleri, drone.motor_sayisi, sasi_olculeri),
             ucus=self._ucus.hesapla(
-                parca_adetleri, drone.motor_sayisi, drone.amac, agirlik, hedef_ucus_suresi_dk=hedefler.ucus_suresi_dk
+                parca_adetleri, drone.motor_sayisi, drone.amac, agirlik,
+                hedef_ucus_suresi_dk=hedefler.ucus_suresi_dk, hedef_itki_agirlik=hedefler.itki_agirlik,
             ),
         )

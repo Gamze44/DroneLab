@@ -23,12 +23,15 @@ class HedefDeposu:
             s = bag.execute("SELECT * FROM drone_hedefleri WHERE drone_kimlik = ?", (drone_kimlik,)).fetchone()
         if s is None:
             return DroneHedefleri()
-        return DroneHedefleri(ucus_suresi_dk=s["ucus_suresi_dk"], yuk_g=s["yuk_g"], butce_tl=s["butce_tl"])
+        return DroneHedefleri(
+            ucus_suresi_dk=s["ucus_suresi_dk"], yuk_g=s["yuk_g"], butce_tl=s["butce_tl"], itki_agirlik=s["itki_agirlik"]
+        )
 
     def kaydet(self, drone_kimlik: int, hedefler: DroneHedefleri) -> None:
         """Drone'un hedeflerini yazar (öncekinin yerine geçer)."""
         with self._vt.baglanti() as bag:
             bag.execute(
-                "INSERT OR REPLACE INTO drone_hedefleri (drone_kimlik, ucus_suresi_dk, yuk_g, butce_tl) VALUES (?, ?, ?, ?)",
-                (drone_kimlik, hedefler.ucus_suresi_dk, hedefler.yuk_g, hedefler.butce_tl),
+                "INSERT OR REPLACE INTO drone_hedefleri (drone_kimlik, ucus_suresi_dk, yuk_g, butce_tl, itki_agirlik) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (drone_kimlik, hedefler.ucus_suresi_dk, hedefler.yuk_g, hedefler.butce_tl, hedefler.itki_agirlik),
             )

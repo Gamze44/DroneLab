@@ -87,14 +87,18 @@ function ozetiCiz() {
 
 // ---------- Uçuş hesabı ----------
 
+// İtki/ağırlık hedefinin nereden geldiği (Hedefler sekmesinde girilen ya da kullanım amacına göre varsayılan).
+function hedefKaynagiMetni(u) {
+  return u.hedef_itki_agirlik_elle_mi ? "senin hedefin" : "kullanım amacına göre";
+}
+
 function ucusHesabiniCiz() {
   const u = elektronikOzeti.ucus;
   const oran = u.itki_agirlik_orani;
   let oranMetni = hesapMetni(oran, "", ORAN_BASAMAK);
   if (oran.deger != null) {
-    oranMetni += u.hedefe_ulasiyor_mu
-      ? ` ✓ hedef ≥ ${sayiBicimle(u.hedef_itki_agirlik, ORAN_BASAMAK)}`
-      : ` ✗ hedef ≥ ${sayiBicimle(u.hedef_itki_agirlik, ORAN_BASAMAK)} (bu amaç için düşük)`;
+    const hedef = `hedef ≥ ${sayiBicimle(u.hedef_itki_agirlik, ORAN_BASAMAK)} (${hedefKaynagiMetni(u)})`;
+    oranMetni += u.hedefe_ulasiyor_mu ? ` ✓ ${hedef}` : ` ✗ ${hedef}, düşük`;
   }
   const satirlar = [
     ["Toplam ağırlık", hesapMetni(u.toplam_agirlik_g, " g", AGIRLIK_BASAMAK)],

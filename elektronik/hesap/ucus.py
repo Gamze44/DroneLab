@@ -57,13 +57,15 @@ class UcusOzeti:
         toplam_agirlik_g: Toplam kalkış ağırlığı, g.
         toplam_itki_g: Bütün motorların tam gaz itkisi, g.
         itki_agirlik_orani: toplam itki / toplam ağırlık.
-        hedef_itki_agirlik: Kullanım amacına göre hedef oran.
+        hedef_itki_agirlik: Hedef oran: kullanıcı girdiyse o, yoksa kullanım amacına göre varsayılan.
         asili_gaz_yuzde: Havada asılı kalmak için gereken gaz, %.
         asili_akim_a: Asılı kalırken bütün motorların toplam akımı, A.
         toplam_maks_akim_a: Tam gazda toplam en büyük akım, A.
         ucus_suresi_dk: Tahmini uçuş süresi, dakika.
         notlar: Hesapta kullanılan kabuller (ör. "pil kimyası girilmedi, 3,7 V/hücre alındı").
         hedef_ucus_suresi_dk: Kullanıcının istediği en az uçuş süresi; girilmediyse None.
+        hedef_itki_agirlik_elle_mi: Hedef oranı kullanıcı girdiyse True, amaca göre varsayılansa False.
+        amac_hedef_itki_agirlik: Kullanım amacına göre varsayılan hedef (karşılaştırma için).
     """
 
     toplam_agirlik_g: HesapDegeri
@@ -76,6 +78,8 @@ class UcusOzeti:
     ucus_suresi_dk: HesapDegeri
     notlar: list[str] = field(default_factory=list)
     hedef_ucus_suresi_dk: float | None = None
+    hedef_itki_agirlik_elle_mi: bool = False
+    amac_hedef_itki_agirlik: float | None = None
 
     @property
     def ucus_suresi_hedefe_ulasiyor_mu(self) -> bool | None:
@@ -123,6 +127,7 @@ class UcusHesaplayici:
         amac: str,
         agirlik: AgirlikOzeti,
         hedef_ucus_suresi_dk: float | None = None,
+        hedef_itki_agirlik: float | None = None,
     ) -> UcusOzeti:
         """
         Uçuş değerlerini hesaplar.
@@ -133,6 +138,7 @@ class UcusHesaplayici:
             amac: Kullanım amacı (hedef oran ve uçuş tarzı katsayısı için).
             agirlik: AgirlikHesaplayici sonucu (yük dahil).
             hedef_ucus_suresi_dk: Kullanıcının istediği en az uçuş süresi; yoksa None.
+            hedef_itki_agirlik: Kullanıcının bu drone için istediği itki/ağırlık; yoksa None (amaca göre varsayılan).
         Dönüş:
             UcusOzeti.
         """
@@ -153,12 +159,13 @@ class UcusHesaplayici:
         oran = self._oran(toplam_itki, toplam)
         asili_gaz, asili_akim = self._asili(toplam, motor_itkisi, tablo, pervane, gerilim, motor_sayisi)
         maks_akim = self._akim.hesapla(kalemler, motor_sayisi)
+        amac_hedefi = HEDEF_ITKI_AGIRLIK.get(amac, VARSAYILAN_HEDEF_ITKI_AGIRLIK)
 
         return UcusOzeti(
             toplam_agirlik_g=toplam,
             toplam_itki_g=toplam_itki,
             itki_agirlik_orani=oran,
-            hedef_itki_agirlik=HEDEF_ITKI_AGIRLIK.get(amac, VARSAYILAN_HEDEF_ITKI_AGIRLIK),
+            hedef_itki_agirlik=hedef_itki_agirlik if hedef_itki_agirlik is not None else amac_hedefi,
             asili_gaz_yuzde=asili_gaz,
             asili_akim_a=asili_akim,
             toplam_maks_akim_a=HesapDegeri(
@@ -168,6 +175,8 @@ class UcusHesaplayici:
             ucus_suresi_dk=self._ucus_suresi(pil, asili_akim, amac),
             notlar=notlar,
             hedef_ucus_suresi_dk=hedef_ucus_suresi_dk,
+            hedef_itki_agirlik_elle_mi=hedef_itki_agirlik is not None,
+            amac_hedef_itki_agirlik=amac_hedefi,
         )
 
     # ---------- Adımlar ----------
