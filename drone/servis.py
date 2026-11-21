@@ -42,10 +42,11 @@ class DroneServisi:
 
     Parametreler:
         veri_klasoru: Veritabanı ve şasi dosyalarının tutulacağı klasör.
+        veritabani: Ortak Veritabani; verilmezse veri klasöründeki dosya açılır.
     """
 
-    def __init__(self, veri_klasoru: Path) -> None:
-        veritabani = Veritabani(veri_klasoru / VERITABANI_DOSYA_ADI)
+    def __init__(self, veri_klasoru: Path, veritabani: Veritabani | None = None) -> None:
+        veritabani = veritabani or Veritabani(veri_klasoru / VERITABANI_DOSYA_ADI)
         self._dronelar = DroneDeposu(veritabani)
         self._sasiler = SasiKayitDeposu(veritabani)
         self._dosyalar = SasiDosyaDeposu(veri_klasoru / SASI_DOSYALARI_KLASOR_ADI)

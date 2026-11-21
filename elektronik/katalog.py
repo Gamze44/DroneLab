@@ -9,6 +9,8 @@ Bu sınıf yalnızca saklama işini yapar: hangi değerin doğru olduğuna, ne z
 doğrulanmış sayılacağına karar vermez (o iş mantığı sonraki aşamada).
 """
 
+from collections.abc import Iterable
+import json
 import sqlite3
 from typing import Final
 
@@ -117,6 +119,28 @@ class ParcaKatalogu:
         if satir is None:
             raise KayitBulunamadiHatasi("Parça katalogda bulunamadı.")
         return self._satirdan_parca(satir)
+
+    def getir_hepsi(self, kimlikler: Iterable[int]) -> dict[int, Parca]:
+        """
+        Birden çok parçayı tek sorguda getirir.
+
+        Drone özeti her parça için ayrı sorgu atınca (N+1) parça sayısıyla yavaşlıyordu.
+        Kimlikler tek bir JSON dizisi olarak verilir; böylece SQLite'ın parametre sayısı
+        sınırına takılmadan istenen kadar kimlik sorulabilir.
+
+        Parametreler:
+            kimlikler: Parça kimlikleri (tekrar edebilir).
+        Dönüş:
+            Kimlik -> Parca; katalogda olmayan kimlikler sözlükte yer almaz.
+        """
+        liste = sorted(set(kimlikler))
+        if not liste:
+            return {}
+        with self._vt.baglanti() as bag:
+            satirlar = bag.execute(
+                "SELECT * FROM parcalar WHERE kimlik IN (SELECT value FROM json_each(?))", (json.dumps(liste),)
+            ).fetchall()
+        return {int(s["kimlik"]): self._satirdan_parca(s) for s in satirlar}
 
     def ayni_parcayi_bul(self, parca: Parca) -> Parca | None:
         """

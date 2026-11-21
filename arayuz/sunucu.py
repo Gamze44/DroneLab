@@ -37,7 +37,9 @@ from cekirdek.ayarlar import (
     SIMGE_YOLU,
     STATIK_KLASORU,
     VERI_KLASORU,
+    VERITABANI_DOSYA_ADI,
 )
+from depolama.veritabani import Veritabani
 from cekirdek.hatalar import (
     DesteklenmeyenDosyaHatasi,
     DroneProgramHatasi,
@@ -185,11 +187,14 @@ def sunucu_olustur(
     sunucu = FastAPI(title=PROGRAM_ADI, version=PROGRAM_SURUMU, docs_url=None, redoc_url=None, openapi_url=None)
     _hata_yakalayicilari_ekle(sunucu)
     _guvenlik_katmanlarini_ekle(sunucu, izinli_hostlar if izinli_hostlar is not None else IZINLI_HOSTLAR)
-    elektronik = ElektronikServisi(veri_klasoru)
-    maliyet = MaliyetServisi(elektronik, veri_klasoru, kur_getirici)
-    yapay_zeka = YapayZekaIstemcisi(veri_klasoru, saglayici_uretici)
-    sartname = SartnameServisi(veri_klasoru, elektronik, maliyet, yapay_zeka)
-    sunucu.include_router(drone_rotalarini_olustur(DroneServisi(veri_klasoru)))
+    # Veritabanı tek yerde açılır: şema denetimi bir kez yapılır, bütün servisler aynı
+    # bağlantı ayarlarını (WAL, kilit bekleme süresi) kullanır.
+    veritabani = Veritabani(veri_klasoru / VERITABANI_DOSYA_ADI)
+    elektronik = ElektronikServisi(veri_klasoru, veritabani)
+    maliyet = MaliyetServisi(elektronik, veri_klasoru, kur_getirici, veritabani)
+    yapay_zeka = YapayZekaIstemcisi(veri_klasoru, saglayici_uretici, veritabani)
+    sartname = SartnameServisi(veri_klasoru, elektronik, maliyet, yapay_zeka, veritabani)
+    sunucu.include_router(drone_rotalarini_olustur(DroneServisi(veri_klasoru, veritabani)))
     sunucu.include_router(elektronik_rotalarini_olustur(elektronik))
     sunucu.include_router(oneri_rotalarini_olustur(OneriServisi(elektronik, yapay_zeka, sartname.oneri_maddeleri)))
     sunucu.include_router(maliyet_rotalarini_olustur(maliyet))

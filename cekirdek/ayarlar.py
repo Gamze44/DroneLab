@@ -65,7 +65,8 @@ SIMGE_YOLU: Final[Path] = STATIK_KLASORU / f"{PROGRAM_DOSYA_ADI}.ico"
 EN_BUYUK_YUKLEME_MB: Final[int] = 200
 
 # Kayıtlı dronelar bu veritabanı dosyasında, şasi dosyalarının kopyaları da
-# veri klasöründeki bu alt klasörde tutulur. Yedek almak için veri/ klasörünü kopyalamak yeterli.
+# veri klasöründeki bu alt klasörde tutulur. Yedek almak için program KAPALIYKEN veri/
+# klasörünü kopyalamak yeterli (açıkken son değişiklikler yanındaki -wal dosyasında olabilir).
 VERITABANI_DOSYA_ADI: Final[str] = "dronelar.sqlite3"
 SASI_DOSYALARI_KLASOR_ADI: Final[str] = "sasi_dosyalari"
 SARTNAME_DOSYALARI_KLASOR_ADI: Final[str] = "sartname_dosyalari"

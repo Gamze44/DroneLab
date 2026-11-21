@@ -15,6 +15,14 @@ from typing import Final
 
 from cekirdek.hatalar import DroneProgramHatasi
 
+# Bir bağlantının, başka bir işlemin yazma kilidini bırakmasını en çok bekleyeceği süre
+# (saniye). sqlite3'ün varsayılanı 5 sn; 30-40 eşzamanlı yazmada yetmeyip
+# "database is locked" hatası veriyordu.
+KILIT_BEKLEME_SN: Final[float] = 30.0
+# WAL kipinde okuyanlar yazanı, yazan okuyanları beklemez; yalnızca iki yazma sıraya girer.
+# Kip dosyaya kaydedilir; veritabanının yanında -wal ve -shm dosyaları görünür.
+GUNLUK_KIPI: Final[str] = "WAL"
+
 # Sürüm 1: dronelar ve şasiler.
 SEMA_V1: Final[str] = """
 CREATE TABLE IF NOT EXISTS dronelar (
@@ -171,6 +179,7 @@ class Veritabani:
     def __init__(self, yol: Path) -> None:
         self.yol: Path = yol
         yol.parent.mkdir(parents=True, exist_ok=True)
+        self._gunluk_kipini_ayarla()
         self._semayi_olustur()
 
     @contextmanager
@@ -184,7 +193,7 @@ class Veritabani:
         Dönüş:
             Satırları sözlük gibi okunabilen sqlite3 bağlantısı.
         """
-        bag = sqlite3.connect(self.yol)
+        bag = sqlite3.connect(self.yol, timeout=KILIT_BEKLEME_SN)
         bag.row_factory = sqlite3.Row
         # SQLite yabancı anahtarları varsayılan olarak denetlemez; drone silinince
         # şasi kaydının da silinmesi (CASCADE) için açılması gerekir.
@@ -197,6 +206,15 @@ class Veritabani:
             raise
         finally:
             bag.close()
+
+    def _gunluk_kipini_ayarla(self) -> None:
+        """
+        Veritabanını WAL kipine alır (eşzamanlı okuma/yazma için).
+
+        Kip dosyada saklandığı için her açılışta yeniden ayarlamak zararsızdır.
+        """
+        with self.baglanti() as bag:
+            bag.execute(f"PRAGMA journal_mode = {GUNLUK_KIPI}")
 
     def _semayi_olustur(self) -> None:
         """

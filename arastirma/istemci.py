@@ -54,12 +54,18 @@ class YapayZekaIstemcisi:
     Parametreler:
         veri_klasoru: veri/ klasörü (anahtar, ayarlar, kullanım sayacı).
         saglayici_uretici: (anahtar, model) -> sağlayıcı; testlerde sahtesi verilir.
+        veritabani: Ortak Veritabani; verilmezse veri klasöründeki dosya açılır.
     """
 
-    def __init__(self, veri_klasoru: Path, saglayici_uretici: SaglayiciUretici = gemini_uret) -> None:
+    def __init__(
+        self,
+        veri_klasoru: Path,
+        saglayici_uretici: SaglayiciUretici = gemini_uret,
+        veritabani: Veritabani | None = None,
+    ) -> None:
         self.anahtar = AnahtarDeposu(veri_klasoru)
         self.ayarlar = YapayZekaAyarDeposu(veri_klasoru)
-        self.sayac = GunlukKullanimSayaci(Veritabani(veri_klasoru / VERITABANI_DOSYA_ADI))
+        self.sayac = GunlukKullanimSayaci(veritabani or Veritabani(veri_klasoru / VERITABANI_DOSYA_ADI))
         self._uretici = saglayici_uretici
 
     def istek(self, sistem_talimati: str, istem: str, sema: dict[str, Any]) -> YapayZekaYaniti:

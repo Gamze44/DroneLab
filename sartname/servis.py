@@ -58,13 +58,19 @@ class SartnameServisi:
         elektronik: Tasarım bilgilerini veren ElektronikServisi.
         maliyet: Maliyet maddeleri için MaliyetServisi.
         yapay_zeka: Madde çıkarımı için YapayZekaIstemcisi.
+        veritabani: Ortak Veritabani; verilmezse veri klasöründeki dosya açılır.
     """
 
     def __init__(
-        self, veri_klasoru: Path, elektronik: ElektronikServisi, maliyet: MaliyetServisi, yapay_zeka: YapayZekaIstemcisi
+        self,
+        veri_klasoru: Path,
+        elektronik: ElektronikServisi,
+        maliyet: MaliyetServisi,
+        yapay_zeka: YapayZekaIstemcisi,
+        veritabani: Veritabani | None = None,
     ) -> None:
         self._veri_klasoru = veri_klasoru
-        self._depo = SartnameDeposu(Veritabani(veri_klasoru / VERITABANI_DOSYA_ADI))
+        self._depo = SartnameDeposu(veritabani or Veritabani(veri_klasoru / VERITABANI_DOSYA_ADI))
         self._elektronik = elektronik
         self._maliyet = maliyet
         self._yz = yapay_zeka

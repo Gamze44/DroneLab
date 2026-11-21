@@ -72,10 +72,11 @@ class ElektronikServisi:
 
     Parametreler:
         veri_klasoru: Veritabanının bulunduğu klasör (veri/).
+        veritabani: Ortak Veritabani; verilmezse veri klasöründeki dosya açılır.
     """
 
-    def __init__(self, veri_klasoru: Path) -> None:
-        veritabani = Veritabani(veri_klasoru / VERITABANI_DOSYA_ADI)
+    def __init__(self, veri_klasoru: Path, veritabani: Veritabani | None = None) -> None:
+        veritabani = veritabani or Veritabani(veri_klasoru / VERITABANI_DOSYA_ADI)
         self._dronelar = DroneDeposu(veritabani)
         self._katalog = ParcaKatalogu(veritabani)
         self._baglar = DroneParcaDeposu(veritabani)
@@ -98,7 +99,11 @@ class ElektronikServisi:
             KayitBulunamadiHatasi: Drone yoksa.
         """
         drone = self._dronelar.getir(drone_kimlik)
-        kalemler = [(bag, self._katalog.getir(bag.parca_kimlik)) for bag in self._baglar.listele(drone_kimlik)]
+        baglar = self._baglar.listele(drone_kimlik)
+        parcalar = self._katalog.getir_hepsi(bag.parca_kimlik for bag in baglar)
+        # Bağlı parça katalogdan silinemez (RESTRICT); yine de iki sorgu arasında bağ ve
+        # parça birlikte silinmişse o kalem atlanır, özet hata vermez.
+        kalemler = [(bag, parcalar[bag.parca_kimlik]) for bag in baglar if bag.parca_kimlik in parcalar]
         parca_adetleri = [(parca, bag.adet) for bag, parca in kalemler]
         sasi = self._sasiler.getir(drone_kimlik)
         hedefler = self._hedefler.getir(drone_kimlik)

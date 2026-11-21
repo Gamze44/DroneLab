@@ -125,6 +125,11 @@ class KurServisi:
     """
     Kurları günde bir kez TCMB'den alır, alamazsa kayıtlı olanları kullanır.
 
+    Alma başarısız olursa o gün otomatik olarak yeniden denenmez (kullanıcı kararı):
+    internet yokken her maliyet ekranı açılışında 10 sn beklenmesin. "Kurları yenile"
+    düğmesi (zorla=True) her zaman yeniden dener. Başarısız gün bellekte tutulur;
+    program yeniden açılınca bir kez daha denenir.
+
     Parametreler:
         depo: KurDeposu.
         getirici: XML'i indiren fonksiyon; testlerde sahtesi verilir (internete çıkılmaz).
@@ -141,27 +146,41 @@ class KurServisi:
         self._getirici = getirici
         self._bugun = bugun
         self._okuyucu = TcmbKurOkuyucu()
+        # Kurların alınamadığı son gün (ISO); o gün otomatik deneme yapılmaz.
+        self._basarisiz_gun: str | None = None
 
     def kurlar(self, zorla: bool = False) -> KurDurumu:
         """
         Kullanılacak kurları döndürür.
 
         Parametreler:
-            zorla: True ise bugün alınmış olsa bile yeniden alınır ("Kurları yenile" düğmesi).
+            zorla: True ise bugün alınmış veya bugün denenip alınamamış olsa bile yeniden
+                alınır ("Kurları yenile" düğmesi).
         """
         bugun = self._bugun().isoformat()
         kayitli = self._depo.hepsi()
-        if not zorla and kayitli and all(k.alinma_gunu == bugun for k in kayitli.values()):
+        # TCMB bazı günler her para birimini yayımlamayabilir; bugün en az biri alındıysa
+        # bugünkü alma yapılmış sayılır (yoksa eksik birim yüzünden her açılışta denenirdi).
+        if not zorla and any(k.alinma_gunu == bugun for k in kayitli.values()):
             return KurDurumu(kayitli, guncel_mi=True)
+        if not zorla and self._basarisiz_gun == bugun:
+            return KurDurumu(kayitli, guncel_mi=False, hata=self._hata_notu(kayitli))
         try:
             yeni = self._okuyucu.oku(self._getirici(), bugun)
             if not yeni:
                 raise ValueError("kur dosyasında beklenen para birimleri yok")
         except (OSError, urllib.error.URLError, ValueError, ET.ParseError) as hata:
             gunluk.warning("TCMB kurları alınamadı: %s", hata)
-            not_ = "TCMB'den güncel kur alınamadı (internet bağlantısını kontrol edin)."
-            if kayitli:
-                not_ += " Son kayıtlı kur kullanıldı."
-            return KurDurumu(kayitli, guncel_mi=False, hata=not_)
+            self._basarisiz_gun = bugun
+            return KurDurumu(kayitli, guncel_mi=False, hata=self._hata_notu(kayitli))
+        self._basarisiz_gun = None
         self._depo.kaydet(yeni)
         return KurDurumu({**kayitli, **yeni}, guncel_mi=True)
+
+    @staticmethod
+    def _hata_notu(kayitli: dict[str, Kur]) -> str:
+        """Kur alınamadığında ekranda gösterilecek Türkçe not."""
+        not_ = "TCMB'den güncel kur alınamadı (internet bağlantısını kontrol edin; 'Kurları yenile' ile tekrar deneyin)."
+        if kayitli:
+            not_ += " Son kayıtlı kur kullanıldı."
+        return not_

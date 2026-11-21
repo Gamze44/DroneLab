@@ -50,12 +50,17 @@ class MaliyetServisi:
         elektronik: Drone ve parça bilgilerine erişen ElektronikServisi.
         veri_klasoru: veri/ klasörü.
         kur_getirici: TCMB XML'ini indiren fonksiyon; testlerde sahtesi verilir.
+        veritabani: Ortak Veritabani; verilmezse veri klasöründeki dosya açılır.
     """
 
     def __init__(
-        self, elektronik: ElektronikServisi, veri_klasoru: Path, kur_getirici: Callable[[], bytes] = tcmb_xml_getir
+        self,
+        elektronik: ElektronikServisi,
+        veri_klasoru: Path,
+        kur_getirici: Callable[[], bytes] = tcmb_xml_getir,
+        veritabani: Veritabani | None = None,
     ) -> None:
-        vt = Veritabani(veri_klasoru / VERITABANI_DOSYA_ADI)
+        vt = veritabani or Veritabani(veri_klasoru / VERITABANI_DOSYA_ADI)
         self._elektronik = elektronik
         self._parca_fiyatlari = ParcaFiyatDeposu(vt)
         self._sasi_fiyatlari = SasiFiyatDeposu(vt)
