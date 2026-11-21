@@ -122,7 +122,7 @@ Sunucu yalnızca `127.0.0.1` adresinden erişilebilir (ağdaki diğer cihazlar g
 |---|---|
 | **Ana sayfa** | Slogan, radar, uçuşan dronelar, üç başlangıç seçeneği, kayıtlı drone kartları (türe göre çizim), yeni drone formu (isteğe bağlı şartname) |
 | **Ayarlar** | Gemini anahtarı (yalnızca var/yok gösterilir), model, günlük sınır, bugünkü kullanım; şartname kütüphanesi |
-| 01 Şasi | Dosya yükleme, birim onayı, ölçüler, **üstten görünüş** (motor yerleri, pervaneler, sığabilecek en büyük pervane), elle ağırlık |
+| 01 Şasi | Dosya veya parçalı şasi zip'i yükleme (parça görevi ve adedi tablosu), birim onayı, ölçüler, **dingil mesafesi** (elle ya da gövde ve koldan hesaplayıp onaylayarak), **üstten görünüş** (motor yerleri, pervaneler, sığabilecek en büyük pervane), elle ağırlık |
 | 02 Elektronik | Zorunlu parça çipleri, ağırlık özeti, parça listesi (adet / durum), parça formu, **✨ Öner** paneli |
 | 03 Hedefler ve itki | Uçuş süresi, yük ve bütçe hedefleri; motor itki tablosu girişi |
 | 04 Uyum kontrolleri | **Bağlantı şeması** (renkli çizgiler) ve K1–K13 listesi |
@@ -195,7 +195,9 @@ veri/                      Veritabanı, şasi ve şartname dosyaları, anahtar, 
 
 **Şasiden pervane tahmini**
 
-- Dingil mesafesi ≈ şasi köşegeni × 0,9.
+- Dingil mesafesi: kullanıcı girdiyse o değer; yoksa ≈ şasi köşegeni × 0,9.
+- Parçalı şaside (zip) dingil dış ölçüden tahmin edilmez: elle girilir ya da tek kolun boyundan
+  hesaplanıp onaylanır (merkez bağlantı: R = kol boyu − kol genişliği / 2; dingil = 2R; `sasi/dingil.py`).
 - Komşu motorlar arası mesafe = dingil × sin(π / motor sayısı).
 - Sığabilecek en büyük pervane = bu mesafe − 6 mm.
 
@@ -236,6 +238,8 @@ uygulanır; kayıtlı dronelar kaybolmaz.
 | 4 | Parça fiyatları, şasi maliyeti, döviz kurları |
 | 5 | Drone hedefleri (uçuş süresi, yük, bütçe) |
 | 6 | Şartnameler, maddeleri, drone–şartname bağı |
+| 7 | DroneLab Asistan sohbet geçmişi ve değişiklik önerileri |
+| 8 | Parçalı şasinin parçaları (görev, adet, geometri) |
 
 ## 10. Bağımlılıklar
 
@@ -261,7 +265,8 @@ PDF/Word belgeleri kullanılır. Testler kullanıcının gerçek veritabanına y
   - Taranmış PDF'ler için OCR.
 - **Henüz denenmeyenler:** Gerçek Gemini yanıtıyla "Öner" ve "maddeleri çıkar" henüz denenmedi;
   ilk denemede istek biçimi gerçek yanıta göre düzeltilebilir.
-- **Şasi tahmini:** Şasinin üstten görünüşü ve K5 tahminidir; gerçek kol uzunluğu bilinmez.
+- **Şasi tahmini:** Şasinin üstten görünüşü ve K5 tahminidir; dingil girilmediyse gerçek kol uzunluğu bilinmez.
+  Parçalı şaside parçalar montajlı olmadığı için en/boy da tahminidir; parça görevi dosya adından önerilir.
 - **Şartname boyutu:** Şartname "boyut" maddesi şasi dosyasının en/boy ölçüsüyle karşılaştırılır;
   şartname boyutu çapraz motor mesafesiyle tanımlıyorsa sonuç farklı olabilir.
 - **Sonraya bırakılanlar:** 3D yerleşim ve denge, sabit kanat desteği, Onshape API bağlantısı,
