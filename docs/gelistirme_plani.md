@@ -46,6 +46,7 @@ Windows'ta kullanıcının kendi bilgisayarında çalışan bir drone tasarım v
 - [ ] G9 – Uçuş kaydıyla kalibrasyon
 - [ ] G10 – Ortam koşulları
 - [ ] G11 – Mevzuat kontrolü
+- [ ] G12 – DroneLab Asistan paneli
 - [ ] A3 – Parça kataloğu paylaşma
 - [ ] A4 – İngilizce arayüz
 - [ ] A5 – GitHub Actions ile test ve .exe derleme
@@ -292,6 +293,79 @@ Windows'ta kullanıcının kendi bilgisayarında çalışan bir drone tasarım v
 
 ---
 
+## G12 – DroneLab Asistan paneli (chatbot)
+
+> Bu bölüm `docs/gelistirme_plani.md` dosyasının sonuna eklenir. Durum tablosuna şu satırı ekle:
+> `- [ ] G12 – DroneLab Asistan paneli`
+>
+> Çalışma kuralları geçerlidir. Bu görev büyük olduğu için **Plan modunda başla**: önce planı yaz, onayımı bekle, sonra uygula.
+
+**Amaç:** Kullanıcının her ekrandan, açık projesinin verilerini bilen bir asistana soru sorabilmesi. Asistan açıklar ve önerir, ama değerleri kullanıcı onaylamadan değiştirmez.
+
+### Önce incele
+- Arayüzün yapısını (üst menü, sayfa geçişleri, mevcut renk ve yazı tipi değişkenleri, animasyonlar) ve mevcut model API istemcisini (parça araştırma ve öneri servisinde kullanılan) oku. Yeni bir API istemcisi yazma, mevcut olanı yeniden kullan.
+- A1 (API harcama sayacı) ve G1 (proje kaydetme) programda var mı kontrol et. Yoksa planda belirt; bu görev onlar olmadan da çalışmalı, var olduklarında onlara bağlanmalı.
+
+### Arayüz
+- **Yer:** Sağ kenardan açılan yan panel. Ana sayfa dahil tüm ekranlarda kullanılabilir.
+- **Açma yolları:**
+  1. Üst menüde, "SİSTEM HAZIR" göstergesinin solunda "Asistan" butonu.
+  2. Sağ alt köşede sabit yuvarlak buton. Ana sayfadaki "İHA-06 · QUAD" süslemesiyle çakışıyorsa süslemeyi yukarı kaydır; başka süslemeye dokunma.
+  3. `Ctrl+K` kısayolu; `Esc` paneli kapatır.
+- **Davranış:** Pencere genişliği yeterliyse panel içeriği sola iter, üstüne binmez. Dar pencerede (eşik DEĞİŞTİRİLEBİLİR) içeriğin üzerine açılır. Panel genişliği yaklaşık 400 px (DEĞİŞTİRİLEBİLİR). Açılıp kapanma, mevcut arayüz animasyonlarıyla aynı süre ve yumuşatma eğrisini kullanır.
+- **Tasarım:** Mevcut tasarım diliyle aynı: koyu lacivert zemin, camgöbeği vurgu, mevcut CSS değişkenleri. Başlıkta monospace "// DRONELAB ASİSTAN" etiketi ve o anki ekranın adı (ör. "Bağlam: Elektronik").
+- **Panel içeriği:** mesaj listesi, yazma alanı (Enter gönderir, Shift+Enter yeni satır), "Yeni sohbet" butonu, ekrana göre değişen 3 hazır soru önerisi (ör. Elektronik ekranında "ESC uyarısının nedeni ne?").
+- Yanıt akış halinde (streaming) gelir. İstek sürerken "Durdur" butonu görünür.
+- Klavye erişimi ve `aria` etiketleri eksiksiz olur.
+- Mevcut ekranların yerleşimini, renklerini ve animasyonlarını değiştirme.
+
+### Mimari
+- `asistan/` paketi:
+  - `AsistanServisi`: sohbeti yönetir, modeli çağırır, araç çağrılarını yürütür.
+  - `BaglamToplayici`: o anki ekranı ve açık projenin özetini toplar (görev tanımı, şasi ağırlığı, parçalar, son hesap sonuçları, uyum sonuçları, şartname maddeleri). Bağlam kısa tutulur; ayrıntı gerektiğinde araçlarla alınır.
+  - `AsistanAraclari`: modelin çağırabileceği araçlar (aşağıda).
+  - `SohbetGecmisi`: mesajları saklar.
+- Sunucu tarafında sohbet uç noktası; yanıt akışı için mevcut sunucu yapısına uygun yöntem (ör. Server-Sent Events).
+- Model adı ve sistem talimatı ayar dosyasından okunur (DEĞİŞTİRİLEBİLİR). API anahtarı mevcut ayar mekanizmasından gelir.
+
+### Araçlar (tool use)
+Model hesap yapmaz ve değer uydurmaz; programın kendi sınıflarını araç olarak çağırır.
+
+**Okuma araçları (onaysız çalışır):**
+- `proje_ozeti_getir`, `parca_listesi_getir`, `uyum_sonuclarini_getir`, `ucus_hesabini_getir`, `sartname_maddelerini_getir`, `katalogda_ara`.
+- `senaryo_hesapla`: verilen parça değişikliğiyle hesabı **geçici olarak** yapar ve sonucu döndürür; projeyi değiştirmez.
+
+**Değişiklik önerisi aracı:**
+- `degisiklik_oner`: model bir değişiklik önerdiğinde panelde bir öneri kartı gösterilir: ne değişecek, önce/sonra değerleri (`senaryo_hesapla` ile), uyum sonucu ve **"Uygula" / "Vazgeç"** butonları.
+- Değişiklik yalnızca kullanıcı "Uygula"ya basınca, mevcut proje güncelleme yoluyla yapılır. Asistanın doğrudan yazma yetkisi yoktur.
+- G1 varsa uygulama öncesi otomatik bir sürüm kaydı alınır, böylece geri dönülebilir.
+
+### Sistem talimatı (ayar dosyasında, özet)
+- Türkçe, kısa ve net yanıt ver; kullanıcı mühendis düzeyinde teknik bilgiye sahiptir.
+- Sayıları yalnızca araç sonuçlarından ver. Araç sonucu "tahmini" veya "doğrulanmadı" ise bunu yanıtta belirt.
+- Bilmediğin veya araçlarla bulamadığın bilgiyi uydurma, açıkça söyle.
+- Değişikliği yalnızca `degisiklik_oner` ile öner; uygulandı deme.
+- Uçuş güvenliğini etkileyen konularda (pil, failsafe, ayarlar) üreticinin belgesine ve elle doğrulamaya yönlendir.
+
+### Kayıt ve maliyet
+- Sohbet geçmişi açık projeyle birlikte kaydedilir (G1 varsa proje dosyasına; yoksa yerel bir dosyaya proje adına göre). Proje şeması değişiyorsa şema sürümünü artır ve göç adımı yaz.
+- Uzun sohbetlerde modele gönderilen geçmiş sınırlanır (son N mesaj + özet, DEĞİŞTİRİLEBİLİR).
+- Her istek API harcama sayacına (A1) yazılır ve aylık limite tabidir. A1 yoksa kullanım bilgisini en azından günlüğe yaz.
+- API anahtarı sohbet geçmişine, günlüğe veya dışa aktarılan hiçbir dosyaya yazılmaz.
+
+### Hata durumları
+- API anahtarı yoksa panel açılır ama "Asistanı kullanmak için Ayarlar'dan API anahtarı gir" mesajı ve Ayarlar'a giden bağlantı gösterilir.
+- İnternet yoksa veya istek başarısız olursa Türkçe, anlaşılır bir hata ve "Tekrar dene" butonu gösterilir; program çökmez.
+
+### Kabul ölçütleri
+- Panel ana sayfa, şasi, elektronik ve şartname ekranlarında açılıp kapanır; `Ctrl+K` ve `Esc` çalışır; mevcut ekranların görünümü ve animasyonları değişmez.
+- "Toplam ağırlık ne?" sorusunun yanıtındaki sayı ekrandaki değerle aynıdır (araç sonucundan geldiği testle doğrulanır).
+- `degisiklik_oner` çağrısında proje, kullanıcı "Uygula"ya basana kadar değişmez (testle).
+- Sohbet geçmişi proje kaydedilip yeniden açıldığında geri gelir.
+- API anahtarı sohbet kayıtlarında ve günlükte bulunmaz (testle).
+- API'ye gerçek istek atmadan, sahte model yanıtlarıyla (araç çağrısı içeren) testler yazılır ve geçer.
+- Görsel doğrulama yapılamıyorsa elle deneme adımları yazılır.
+
 ## A3 – Parça kataloğu paylaşma
 
 - Doğrulanmış parçalar seçilerek JSON olarak dışa aktarılır.
@@ -334,3 +408,4 @@ Bunlara yalnızca açıkça istediğimde başla. Başlarken Plan modunda ayrınt
 - **B2 – Sabit kanat ve VTOL desteği:** kanat alanı, kanat yükü, stall hızı, ağırlık merkezinin aerodinamik merkeze göre konumu, servo parçaları.
 - **B3 – Onshape bağlantısı:** Onshape API ile belgeleri listeleme ve parçayı STEP veya STL olarak çekme. API anahtarları yalnızca yerel ayarlarda tutulur.
 - **B4 – Uçuş kontrolcü başlangıç ayarları:** Betaflight CLI komutları veya ArduPilot `.param` dosyası taslağı (pil gerilim eşikleri, motor protokolü, failsafe). Program ayarları karta asla otomatik yüklemez. Çıktının başında "Uçuştan önce tüm değerleri elle doğrulayın" uyarısı bulunur.
+
