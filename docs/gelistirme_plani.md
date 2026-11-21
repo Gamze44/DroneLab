@@ -46,7 +46,7 @@ Windows'ta kullanıcının kendi bilgisayarında çalışan bir drone tasarım v
 - [ ] G9 – Uçuş kaydıyla kalibrasyon
 - [ ] G10 – Ortam koşulları
 - [ ] G11 – Mevzuat kontrolü
-- [ ] G12 – DroneLab Asistan paneli
+- [x] G12 – DroneLab Asistan paneli — `asistan/` + `arayuz/statik/asistan.js`; Gemini araçlı ve akışlı sohbet, otomatik model geçişi (`arastirma/model_secici.py`), öneri yalnızca "Uygula" ile; geçmiş şema v7'de (G1/A1 yok: geçmiş veritabanında, kullanım günlükte)
 - [ ] A3 – Parça kataloğu paylaşma
 - [ ] A4 – İngilizce arayüz
 - [ ] A5 – GitHub Actions ile test ve .exe derleme
