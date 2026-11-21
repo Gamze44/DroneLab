@@ -209,6 +209,15 @@ function saatiBaslat() {
 }
 document.addEventListener("DOMContentLoaded", saatiBaslat);
 
+// Açılır-kapanır bölümü açar ya da kapatır (ana sayfa kartları, drone sayfası özet şeridi).
+// Düğmenin aria-controls'u içeriği gösterir. Kapalı içerik "inert" olur: Tab ile içine girilmez.
+function kartiAcKapat(dugme, acik) {
+  const icerik = $(dugme.getAttribute("aria-controls"));
+  dugme.setAttribute("aria-expanded", String(acik));
+  icerik.classList.toggle("kapali", !acik);
+  icerik.inert = !acik;
+}
+
 // Sunucudan gelen hatayı (varsa dışa aktarma rehberiyle) kutuda gösterir.
 function hataGoster(kutuKimligi, veri) {
   const kutu = $(kutuKimligi);

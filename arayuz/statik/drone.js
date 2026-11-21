@@ -46,6 +46,12 @@ for (const dugme of document.querySelectorAll(".sekme")) {
   dugme.addEventListener("click", () => sekmeAc(dugme.dataset.sekme));
 }
 
+// Başlık çubuğundaki oklu "Özet" düğmesi beş özet kutusunu açar/kapatır (ana sayfa kartları gibi).
+$("ozet-dugmesi").addEventListener("click", (olay) => {
+  const dugme = olay.currentTarget;
+  kartiAcKapat(dugme, dugme.getAttribute("aria-expanded") !== "true");
+});
+
 async function sayfayiYukle() {
   if (!droneKimligi) {
     hataGoster("sayfa-hatasi", { hata: "Adreste drone numarası yok. Ana sayfaya dönüp bir drone seçin." });

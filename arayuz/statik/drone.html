@@ -19,20 +19,22 @@
     <div id="sayfa-hatasi" class="kutu-hata gizli"></div>
 
     <div id="calisma-alani" class="gizli">
-      <!-- Drone bilgisi -->
-      <section class="kart drone-baslik-karti">
+      <!-- Drone bilgisi: ince çubuk. Özet kutuları sağdaki oklu "Özet" düğmesiyle açılır. -->
+      <section class="kart drone-baslik-karti drone-cubugu">
         <div id="drone-cizimi" class="drone-cizimi" aria-hidden="true"></div>
         <div class="drone-baslik-bilgi">
           <div class="ust-etiket" id="drone-kayit-no"></div>
-          <div class="satir aralikli">
-            <h2 id="drone-adi" style="margin:0"></h2>
-            <span class="etiket dosya">Değişiklikler otomatik kaydedilir</span>
+          <div class="drone-baslik-satiri">
+            <h2 id="drone-adi"></h2>
+            <span id="drone-ozet" class="soluk"></span>
           </div>
-          <p id="drone-ozet" class="soluk" style="margin:6px 0 0"></p>
         </div>
+        <span class="etiket dosya">Değişiklikler otomatik kaydedilir</span>
+        <button type="button" class="acilir-dugme ozet-dugmesi" id="ozet-dugmesi" aria-expanded="false" aria-controls="ozet-icerigi">Özet</button>
       </section>
 
-      <!-- Her adımda görünen özet şeridi (ozet_seridi.js doldurur) -->
+      <!-- Özet şeridi (ozet_seridi.js doldurur); kalabalık görünmesin diye kapalı başlar. -->
+      <div class="acilir-icerik kapali" id="ozet-icerigi" inert><div class="acilir-ic">
       <div class="ozet-seridi" id="ozet-seridi">
         <div class="ozet-kutusu" id="oz-agirlik"><div class="ozet-etiket">Toplam ağırlık</div><div class="ozet-deger">–</div><div class="ozet-alt"></div></div>
         <div class="ozet-kutusu" id="oz-oran"><div class="ozet-etiket">İtki / ağırlık</div><div class="ozet-deger">–</div><div class="ozet-alt"></div></div>
@@ -40,6 +42,7 @@
         <div class="ozet-kutusu" id="oz-maliyet"><div class="ozet-etiket">Maliyet</div><div class="ozet-deger">–</div><div class="ozet-alt"></div></div>
         <div class="ozet-kutusu" id="oz-uyum"><div class="ozet-etiket">Uyum</div><div class="ozet-deger">–</div><div class="ozet-alt"></div></div>
       </div>
+      </div></div>
 
       <div class="drone-duzeni">
       <!-- Adım menüsü: her adımın yanında durum işareti (ozet_seridi.js günceller) -->

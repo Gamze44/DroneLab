@@ -58,15 +58,7 @@ function secenekVurgula(kimlik) {
   }
 }
 
-// ---------- Açılır-kapanır kartlar ----------
-
-// Kartın içeriğini açar ya da kapatır. Kapalı içerik "inert" olur: Tab ile içine girilmez.
-function kartiAcKapat(dugme, acik) {
-  const icerik = $(dugme.getAttribute("aria-controls"));
-  dugme.setAttribute("aria-expanded", String(acik));
-  icerik.classList.toggle("kapali", !acik);
-  icerik.inert = !acik;
-}
+// ---------- Açılır-kapanır kartlar (kartiAcKapat: ortak.js) ----------
 
 for (const dugme of document.querySelectorAll(".acilir-dugme")) {
   dugme.addEventListener("click", () => kartiAcKapat(dugme, dugme.getAttribute("aria-expanded") !== "true"));
