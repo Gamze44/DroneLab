@@ -69,6 +69,26 @@ function secenekVurgula(kimlik) {
   }
 }
 
+// ---------- Açılır-kapanır kartlar ----------
+
+// Kartın içeriğini açar ya da kapatır. Kapalı içerik "inert" olur: Tab ile içine girilmez.
+function kartiAcKapat(dugme, acik) {
+  const icerik = $(dugme.getAttribute("aria-controls"));
+  dugme.setAttribute("aria-expanded", String(acik));
+  icerik.classList.toggle("kapali", !acik);
+  icerik.inert = !acik;
+}
+
+for (const dugme of document.querySelectorAll(".acilir-dugme")) {
+  dugme.addEventListener("click", () => kartiAcKapat(dugme, dugme.getAttribute("aria-expanded") !== "true"));
+}
+
+// Seçenek kartıyla açılan kart, önceden kapatılmış olsa bile içeriği açık gelir.
+function kartiAcikGetir(kartKimligi) {
+  const dugme = $(kartKimligi).querySelector(".acilir-dugme");
+  if (dugme) kartiAcKapat(dugme, true);
+}
+
 function yeniDroneFormunuAc(baslangic) {
   secilenBaslangic = baslangic;
   secenekVurgula("secenek-" + baslangic);
@@ -76,6 +96,7 @@ function yeniDroneFormunuAc(baslangic) {
   goster("kayitli-karti", false);
   goster("yeni-drone-hatasi", false);
   goster("yeni-drone-karti", true);
+  kartiAcikGetir("yeni-drone-karti");
   $("drone-adi").focus();
 }
 
@@ -115,6 +136,7 @@ $("secenek-kayitli").addEventListener("click", async () => {
   secenekVurgula("secenek-kayitli");
   goster("yeni-drone-karti", false);
   goster("kayitli-karti", true);
+  kartiAcikGetir("kayitli-karti");
   await kayitlilariYukle();
 });
 

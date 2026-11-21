@@ -47,7 +47,8 @@
 
     <!-- Yeni drone formu (sıfırdan / elimdeki) -->
     <section class="kart gizli" id="yeni-drone-karti">
-      <h2 id="yeni-drone-basligi"></h2>
+      <h2><button type="button" class="acilir-dugme" id="yeni-drone-basligi" aria-expanded="true" aria-controls="yeni-drone-icerigi"></button></h2>
+      <div class="acilir-icerik" id="yeni-drone-icerigi"><div class="acilir-ic">
       <form id="yeni-drone-formu" class="form-izgara">
         <label for="drone-adi">Drone adı</label>
         <input type="text" id="drone-adi" maxlength="80" required placeholder="ör. Yarış 5 inç">
@@ -77,14 +78,17 @@
         </div>
       </form>
       <div id="yeni-drone-hatasi" class="kutu-hata gizli"></div>
+      </div></div>
     </section>
 
     <!-- Kayıtlı dronelar -->
     <section class="kart gizli" id="kayitli-karti">
-      <h2>Kayıtlı dronelar</h2>
+      <h2><button type="button" class="acilir-dugme" aria-expanded="true" aria-controls="kayitli-icerigi">Kayıtlı dronelar</button></h2>
+      <div class="acilir-icerik" id="kayitli-icerigi"><div class="acilir-ic">
       <div id="kayitli-liste" class="drone-kartlari"></div>
       <p id="kayitli-bos" class="soluk gizli">Henüz kayıtlı drone yok. "Sıfırdan drone yap" ile başlayabilirsin.</p>
       <div id="kayitli-hatasi" class="kutu-hata gizli"></div>
+      </div></div>
     </section>
   </main>
 

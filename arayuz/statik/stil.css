@@ -601,4 +601,33 @@ body.ana-sayfa .secenekler { margin-top: 8px; margin-bottom: 24px; }
   .radar-tarama, .nabiz, .drone-cizimi * { animation: none !important; }
 }
 
+/* ===================== Açılır-kapanır kartlar (ana sayfa) ===================== */
+/* Başlık bir düğmedir (Enter/Boşluk tarayıcıdan gelir) ama eski başlık yazısı gibi görünür.
+   Geçişler sayfanın mevcut animasyon diliyle aynıdır: 0,2 sn, "ease" (seçenek kartları gibi). */
+.acilir-dugme {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.acilir-dugme::after {
+  content: "▾";
+  color: var(--taktik);
+  transition: transform 0.2s ease;
+}
+.acilir-dugme[aria-expanded="false"]::after { transform: rotate(-90deg); }
+.acilir-dugme:focus-visible { outline: 2px solid var(--vurgu-acik); outline-offset: 3px; border-radius: 4px; }
+button.acilir-dugme:hover:not(:disabled), button.acilir-dugme:active:not(:disabled) { filter: none; transform: none; }
+.kart h2:has(> .acilir-dugme) { transition: margin-bottom 0.2s ease; }
+.kart h2:has(> .acilir-dugme[aria-expanded="false"]) { margin-bottom: 0; }
+/* Yükseklik "0fr ↔ 1fr" ızgara satırıyla canlandırılır: içeriğin yüksekliğini bilmek gerekmez. */
+.acilir-icerik { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 0.2s ease, opacity 0.2s ease; }
+.acilir-icerik.kapali { grid-template-rows: 0fr; opacity: 0; }
+/* İç dolgu, odak çerçevelerinin taşma gizlemesiyle kesilmemesi içindir. */
+.acilir-ic { min-height: 0; overflow: hidden; padding: 4px; margin: -4px; }
+@media (prefers-reduced-motion: reduce) {
+  .acilir-icerik, .acilir-dugme::after, .kart h2:has(> .acilir-dugme) { transition: none; }
+}
+
 .gizli { display: none !important; }
