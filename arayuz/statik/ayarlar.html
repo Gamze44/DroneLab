@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ayarlar – {{PROGRAM_ADI}}</title>
+  <link rel="stylesheet" href="/statik/stil.css">
+  <link rel="icon" href="{{SIMGE}}">
+</head>
+<body>
+  <header>
+    <h1><a href="/"><svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/><circle cx="5" cy="5" r="3"/><circle cx="19" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/></g><rect x="9.5" y="9.5" width="5" height="5" rx="1.2" fill="currentColor"/></svg>{{PROGRAM_ADI}}</a></h1>
+    <nav><a href="/">Ana sayfa</a><a href="/ayarlar" class="aktif">Ayarlar</a></nav>
+    <div class="sistem-durumu"><span class="nabiz"></span>SİSTEM HAZIR · YEREL · <span id="sistem-saati">--:--:--</span></div>
+  </header>
+
+  <main>
+    <section class="kart">
+      <h2>Yapay zeka (Gemini) – parça önerisi</h2>
+      <p class="soluk">Gemini yalnızca bir drone'un Elektronik sekmesinde "Öner" düğmesine bastığınızda çalışır.
+        İnternette arama yapılmaz (Google Arama ücretsiz kotada yok); öneriler modelin kendi bilgisinden gelir ve
+        "doğrulanmadı" olarak eklenir. Uyum kontrollerini her zaman programın kendisi yapar.</p>
+
+      <table class="bilgi"><tbody id="ayar-durumu"></tbody></table>
+
+      <form id="ayar-formu" class="form-izgara" style="margin-top:16px">
+        <label for="ay-model">Model</label>
+        <select id="ay-model"></select>
+
+        <label for="ay-sinir">Günlük öneri sınırı</label>
+        <input type="number" id="ay-sinir" min="1" step="1">
+
+        <label for="ay-anahtar">Yeni API anahtarı</label>
+        <input type="password" id="ay-anahtar" autocomplete="off" placeholder="değiştirmek istemiyorsanız boş bırakın">
+      </form>
+      <div class="satir" style="margin-top:16px">
+        <button type="submit" form="ayar-formu" id="ay-kaydet">Kaydet</button>
+        <button type="button" class="tehlike" id="ay-anahtar-sil">Anahtar dosyasını sil</button>
+        <span id="ay-durum" class="soluk"></span>
+      </div>
+      <div id="ayar-hatasi" class="kutu-hata gizli"></div>
+
+      <div class="kutu-uyari">
+        <strong>Anahtarın güvenliği:</strong>
+        <ul>
+          <li>Anahtar bu bilgisayarda <code>veri/gemini_anahtari.txt</code> dosyasında durur ve ekranda hiç gösterilmez.</li>
+          <li><code>veri/</code> klasörünü yedekleyip başkasıyla paylaşacaksanız önce bu dosyayı çıkarın.</li>
+          <li>Ücret çıkmaması için Google hesabınızda bu anahtarın projesinde faturalandırma (billing) kapalı olmalı;
+            kapalıyken Google ücret alamaz, kota dolunca yalnızca "sınıra ulaşıldı" hatası verir.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="kart">
+      <h2>Şartname kütüphanesi</h2>
+      <p class="soluk">Yüklenen şartnameler burada durur ve drone oluştururken ya da Şartname sekmesinden başka
+        dronelara eklenebilir. Bir drone'un kullandığı şartname silinemez; önce o drone'dan kaldırın.</p>
+      <div id="sartname-listesi"></div>
+      <p id="sartname-listesi-bos" class="soluk gizli">Henüz yüklenmiş şartname yok.</p>
+      <div id="sartname-kutuphane-hatasi" class="kutu-hata gizli"></div>
+    </section>
+  </main>
+
+  <script src="/statik/ortak.js"></script>
+  <script src="/statik/ayarlar.js"></script>
+</body>
+</html>

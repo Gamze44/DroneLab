@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{PROGRAM_ADI}}</title>
+  <meta name="program-adi" content="{{PROGRAM_ADI}}">
+  <link rel="stylesheet" href="/statik/stil.css">
+  <link rel="icon" href="{{SIMGE}}">
+</head>
+<body class="genis">
+  <header>
+    <h1><a href="/"><svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/><circle cx="5" cy="5" r="3"/><circle cx="19" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/></g><rect x="9.5" y="9.5" width="5" height="5" rx="1.2" fill="currentColor"/></svg>{{PROGRAM_ADI}}</a></h1>
+    <nav><a href="/">Ana sayfa</a><a href="/ayarlar">Ayarlar</a></nav>
+    <div class="sistem-durumu"><span class="nabiz"></span>SİSTEM HAZIR · YEREL · <span id="sistem-saati">--:--:--</span></div>
+  </header>
+
+  <main>
+    <div id="sayfa-hatasi" class="kutu-hata gizli"></div>
+
+    <div id="calisma-alani" class="gizli">
+      <!-- Drone bilgisi -->
+      <section class="kart drone-baslik-karti">
+        <div id="drone-cizimi" class="drone-cizimi" aria-hidden="true"></div>
+        <div class="drone-baslik-bilgi">
+          <div class="ust-etiket" id="drone-kayit-no"></div>
+          <div class="satir aralikli">
+            <h2 id="drone-adi" style="margin:0"></h2>
+            <span class="etiket dosya">Değişiklikler otomatik kaydedilir</span>
+          </div>
+          <p id="drone-ozet" class="soluk" style="margin:6px 0 0"></p>
+        </div>
+      </section>
+
+      <!-- Her adımda görünen özet şeridi (ozet_seridi.js doldurur) -->
+      <div class="ozet-seridi" id="ozet-seridi">
+        <div class="ozet-kutusu" id="oz-agirlik"><div class="ozet-etiket">Toplam ağırlık</div><div class="ozet-deger">–</div><div class="ozet-alt"></div></div>
+        <div class="ozet-kutusu" id="oz-oran"><div class="ozet-etiket">İtki / ağırlık</div><div class="ozet-deger">–</div><div class="ozet-alt"></div></div>
+        <div class="ozet-kutusu" id="oz-sure"><div class="ozet-etiket">Uçuş süresi</div><div class="ozet-deger">–</div><div class="ozet-alt"></div></div>
+        <div class="ozet-kutusu" id="oz-maliyet"><div class="ozet-etiket">Maliyet</div><div class="ozet-deger">–</div><div class="ozet-alt"></div></div>
+        <div class="ozet-kutusu" id="oz-uyum"><div class="ozet-etiket">Uyum</div><div class="ozet-deger">–</div><div class="ozet-alt"></div></div>
+      </div>
+
+      <div class="drone-duzeni">
+      <!-- Adım menüsü: her adımın yanında durum işareti (ozet_seridi.js günceller) -->
+      <nav class="adim-menusu" aria-label="Tasarım adımları">
+        <button type="button" class="sekme aktif" data-sekme="sasi"><span class="adim-no">01</span><span class="adim-adi">Şasi</span><span class="adim-durum" id="durum-sasi"></span></button>
+        <button type="button" class="sekme" data-sekme="elektronik"><span class="adim-no">02</span><span class="adim-adi">Elektronik</span><span class="adim-durum" id="durum-elektronik"></span></button>
+        <button type="button" class="sekme" data-sekme="hedefler"><span class="adim-no">03</span><span class="adim-adi">Hedefler ve itki</span><span class="adim-durum" id="durum-hedefler"></span></button>
+        <button type="button" class="sekme" data-sekme="uyum"><span class="adim-no">04</span><span class="adim-adi">Uyum kontrolleri</span><span class="adim-durum" id="durum-uyum"></span></button>
+        <button type="button" class="sekme" data-sekme="ucus"><span class="adim-no">05</span><span class="adim-adi">Uçuş hesabı</span><span class="adim-durum" id="durum-ucus"></span></button>
+        <button type="button" class="sekme" data-sekme="maliyet"><span class="adim-no">06</span><span class="adim-adi">Maliyet</span><span class="adim-durum" id="durum-maliyet"></span></button>
+        <button type="button" class="sekme" data-sekme="sartname"><span class="adim-no">07</span><span class="adim-adi">Şartname</span><span class="adim-durum" id="durum-sartname"></span></button>
+      </nav>
+
+      <div class="adim-icerigi">
+
+      <!-- ========== ŞASİ ========== -->
+      <div id="sekme-sasi">
+        <section class="kart">
+          <h2>Şasi dosyası</h2>
+          <p id="mevcut-sasi" class="soluk gizli"></p>
+          <p class="soluk">Desteklenen türler: STL, OBJ, 3MF (3B model) ve DXF (levha şasi).
+            STEP desteği sonraki sürümde eklenecek. Dosyan yoksa bu adımı atlayıp ağırlığı aşağıdan elle girebilirsin.</p>
+          <form id="yukleme-formu" class="satir">
+            <input type="file" id="dosya-secici" accept=".stl,.obj,.3mf,.dxf" required>
+            <button type="submit" id="yukle-dugmesi">Yükle</button>
+            <span id="yukleme-durumu" class="soluk"></span>
+          </form>
+          <div id="sasi-hatasi" class="kutu-hata gizli"></div>
+        </section>
+
+        <section class="kart gizli" id="birim-karti">
+          <h2>Ölçüleri ve birimi doğrula</h2>
+          <table class="bilgi"><tbody id="dosya-bilgileri"></tbody></table>
+
+          <div class="kutu-uyari">
+            <strong>Birimi dikkatle kontrol edin.</strong>
+            Yanlış birim (ör. cm yerine mm) ağırlığı 1000 kata kadar yanlış hesaplatır.
+          </div>
+
+          <p style="margin-top:16px">Dosyadaki sayılar: <span id="ham-olculer" class="olcu-buyuk"></span></p>
+          <div class="satir">
+            <label for="birim-secici">Bu sayıların birimi:</label>
+            <select id="birim-secici"></select>
+            <span id="oneri-etiketi" class="etiket"></span>
+          </div>
+          <p id="oneri-aciklamasi" class="soluk"></p>
+          <p>Bu birimle şasi ölçüleri: <span id="onizleme-olculer" class="olcu-buyuk"></span></p>
+          <button id="birim-onay-dugmesi" type="button">Birimi onayla</button>
+          <div id="okuma-uyarilari" class="kutu-uyari gizli"></div>
+        </section>
+
+        <section class="kart gizli" id="sonuc-karti">
+          <h2>Şasi ölçüleri</h2>
+          <table class="bilgi"><tbody id="sonuc-bilgileri"></tbody></table>
+          <div id="sonuc-uyarilari" class="kutu-uyari gizli"></div>
+          <button type="button" class="ikincil" id="birim-degistir" style="margin-top:12px">Birimi değiştir</button>
+        </section>
+
+        <section class="kart">
+          <h2>Üstten görünüş <span class="etiket uyari">tahmini</span></h2>
+          <div id="sasi-gorunumu"></div>
+          <p class="soluk">Kesikli kutu şasinin dış ölçüsüdür. Motor yerleri bu ölçüden tahmin edilir (gerçek kol
+            uzunluğu bilinmez). Daireler takılı pervaneyi, kesikli daire sığabilecek en büyük pervaneyi gösterir.
+            Kırmızı pervane komşusuna veya gövdeye çarpabilir demektir.</p>
+        </section>
+
+        <section class="kart">
+          <h2>Şasi ağırlığı</h2>
+          <p class="soluk">Şasiyi tarttıysan veya üreticinin verdiği ağırlığı biliyorsan buraya gir.
+            Malzemeden otomatik ağırlık hesabı sonraki aşamada eklenecek.</p>
+          <p>Kayıtlı ağırlık: <span id="kayitli-agirlik" class="olcu-buyuk"></span></p>
+          <form id="agirlik-formu" class="satir">
+            <input type="number" id="agirlik-girdisi" min="0.1" step="0.1" placeholder="gram" required>
+            <span>g</span>
+            <button type="submit" id="agirlik-kaydet">Kaydet</button>
+            <button type="button" class="ikincil" id="agirlik-temizle">Temizle</button>
+          </form>
+          <div id="agirlik-hatasi" class="kutu-hata gizli"></div>
+        </section>
+      </div>
+
+      <!-- ========== ELEKTRONİK ========== -->
+      <div id="sekme-elektronik" class="gizli">
+        <!-- Özet: zorunlu parçalar ve ağırlık -->
+        <section class="kart">
+          <h2>Parça durumu</h2>
+          <div id="zorunlu-listesi" class="cipler"></div>
+          <table class="bilgi" style="margin-top:12px"><tbody id="agirlik-tablosu"></tbody></table>
+          <div id="agirlik-uyarisi" class="kutu-uyari gizli"></div>
+        </section>
+
+        <!-- Parça listesi -->
+        <section class="kart">
+          <div class="satir aralikli">
+            <h2 style="margin:0">Parçalar</h2>
+            <div class="satir">
+              <button type="button" class="ikincil" id="oneri-ac-dugmesi">✨ Öner</button>
+              <button type="button" id="parca-ekle-dugmesi">+ Parça ekle</button>
+            </div>
+          </div>
+          <div id="parca-listesi"></div>
+          <p id="parca-listesi-bos" class="soluk gizli">Henüz parça eklenmedi. "+ Parça ekle" ile başlayın.</p>
+          <div id="elektronik-hatasi" class="kutu-hata gizli"></div>
+        </section>
+
+        <!-- Yapay zeka önerisi -->
+        <section class="kart gizli" id="oneri-karti">
+          <div class="satir aralikli">
+            <h2 style="margin:0">Parça öner (Gemini)</h2>
+            <button type="button" class="ikincil" id="oneri-kapat">Kapat</button>
+          </div>
+          <p class="soluk">Gemini drone'daki diğer parçalara bakarak 3 aday önerir. İnternette arama yapılmaz;
+            değerler modelin bilgisinden gelir ve <strong>doğrulanmadı</strong> sayılır. Uyum sonuçlarını programın
+            kendi kontrolleri verir. Seçtiğiniz aday "önerilen" durumuyla eklenir; değerleri kontrol edip
+            "Düzenle → Kaydet" ile onaylayabilirsiniz.</p>
+          <div class="satir">
+            <label for="oneri-tur">Tür</label>
+            <select id="oneri-tur"></select>
+            <select id="oneri-alt-tur" class="gizli"></select>
+            <button type="button" id="oneri-iste">Öner</button>
+            <span id="oneri-durumu" class="soluk"></span>
+          </div>
+          <div id="oneri-hatasi" class="kutu-hata gizli"></div>
+          <div id="oneri-adaylari"></div>
+        </section>
+
+        <!-- Parça ekleme / düzenleme formu -->
+        <section class="kart gizli" id="parca-formu-karti">
+          <h2 id="parca-formu-basligi">Parça ekle</h2>
+          <p id="parca-formu-notu" class="soluk gizli">Bu parça katalogda ortaktır; değişiklik onu kullanan tüm droneları etkiler.</p>
+          <form id="parca-formu">
+            <div class="form-izgara">
+              <label for="pf-tur">Tür</label>
+              <select id="pf-tur"></select>
+
+              <label for="pf-alt-tur" class="pf-alt-tur-alani">Alt tür</label>
+              <select id="pf-alt-tur" class="pf-alt-tur-alani"></select>
+
+              <label for="pf-uretici">Marka</label>
+              <input type="text" id="pf-uretici" required maxlength="80" placeholder="ör. T-Motor" autocomplete="off">
+
+              <label for="pf-model">Model</label>
+              <input type="text" id="pf-model" required maxlength="120" placeholder="ör. F60 Pro V 1950KV" autocomplete="off">
+
+              <label for="pf-agirlik">Ağırlık (g, bir adet)</label>
+              <input type="number" id="pf-agirlik" min="0.01" step="any" placeholder="bilinmiyorsa boş bırakın">
+
+              <label for="pf-adet" class="pf-ekleme-alani">Adet</label>
+              <input type="number" id="pf-adet" class="pf-ekleme-alani" min="1" step="1" value="1">
+
+              <label for="pf-durum" class="pf-ekleme-alani">Durum</label>
+              <select id="pf-durum" class="pf-ekleme-alani"></select>
+            </div>
+
+            <div id="katalog-onerileri" class="gizli"></div>
+
+            <details id="pf-teknik-kutusu">
+              <summary>Teknik değerler (isteğe bağlı – bilmediğinizi boş bırakın, tahmin etmeyin)</summary>
+              <div id="pf-teknik" class="form-izgara" style="margin-top:12px"></div>
+              <div class="form-izgara" style="margin-top:12px">
+                <label for="pf-kaynak">Kaynak bağlantısı</label>
+                <input type="text" id="pf-kaynak" placeholder="https://…">
+                <label for="pf-notlar">Notlar</label>
+                <input type="text" id="pf-notlar">
+              </div>
+            </details>
+
+            <div class="satir" style="margin-top:16px">
+              <button type="submit" id="pf-kaydet">Kaydet</button>
+              <button type="button" class="ikincil" id="pf-vazgec">Vazgeç</button>
+            </div>
+          </form>
+          <div id="parca-formu-hatasi" class="kutu-hata gizli"></div>
+        </section>
+      </div>
+
+      <!-- ========== HEDEFLER VE İTKİ ========== -->
+      <div id="sekme-hedefler" class="gizli">
+        <section class="kart">
+          <h2>Hedefler</h2>
+          <p id="hedef-drone-bilgisi" class="soluk"></p>
+          <p class="soluk">Hepsi isteğe bağlı. Yük toplam ağırlığa eklenir; uçuş süresi hedefi uçuş hesabında,
+            bütçe maliyet sekmesinde (alınacaklarla) karşılaştırılır. Öneri isterken Gemini'ye de bildirilir.</p>
+          <form id="hedef-formu" class="form-izgara">
+            <label for="hd-ucus">İstenen en az uçuş süresi (dk)</label>
+            <input type="number" id="hd-ucus" min="0.1" step="any" placeholder="girilmedi">
+            <label for="hd-yuk">Taşınacak yük (g)</label>
+            <input type="number" id="hd-yuk" min="0" step="any" placeholder="yok">
+            <label for="hd-butce">Bütçe (TL, alınacak parçalar için)</label>
+            <input type="number" id="hd-butce" min="1" step="any" placeholder="girilmedi">
+          </form>
+          <div class="satir" style="margin-top:16px">
+            <button type="submit" form="hedef-formu" id="hd-kaydet">Kaydet</button>
+            <span id="hedef-durumu" class="soluk"></span>
+          </div>
+          <div id="hedef-hatasi" class="kutu-hata gizli"></div>
+        </section>
+
+        <section class="kart">
+          <h2>Motor itki tablosu</h2>
+          <p class="soluk">Üreticinin test verisini (ör. ürün sayfasındaki tablo) girin. Tablo varsa uçuş hesabı
+            tahmini formül yerine bu değerleri kullanır. Pilin gerilimine en yakın gerilimdeki satırlar seçilir;
+            pervane sütunu "5x4.3x3" gibi yazılırsa drone'daki pervaneyle eşleşen satırlar tercih edilir.
+            Tablo katalogdaki motora kaydedilir, o motoru kullanan tüm dronelarda geçerlidir.</p>
+          <div class="satir">
+            <label for="itki-motor">Motor</label>
+            <select id="itki-motor"></select>
+          </div>
+          <p id="itki-motor-yok" class="soluk gizli">Bu drone'da motor yok. Önce Elektronik sekmesinden motor ekleyin.</p>
+          <div id="itki-alani" class="gizli">
+            <div class="tablo-kaydirma">
+              <table class="maliyet-tablosu itki-tablosu">
+                <thead><tr><th>Gerilim (V)*</th><th>Pervane</th><th>Gaz (%)*</th><th>İtki (g)*</th><th>Akım (A)</th><th>Güç (W)</th><th></th></tr></thead>
+                <tbody id="itki-satirlari"></tbody>
+              </table>
+            </div>
+            <div class="satir" style="margin-top:12px">
+              <button type="button" class="ikincil" id="itki-satir-ekle">+ Satır</button>
+              <button type="button" id="itki-kaydet">Tabloyu kaydet</button>
+              <span id="itki-durumu" class="soluk"></span>
+            </div>
+            <p class="soluk">* zorunlu. Boş satırlar kaydedilmez.</p>
+          </div>
+          <div id="itki-hatasi" class="kutu-hata gizli"></div>
+        </section>
+      </div>
+
+      <!-- ========== UYUM KONTROLLERİ ========== -->
+      <div id="sekme-uyum" class="gizli">
+        <section class="kart">
+          <h2>Bağlantı şeması</h2>
+          <div id="uyum-semasi"></div>
+          <div class="lejant">
+            <span style="--renk: var(--basari)">uygun</span>
+            <span style="--renk: var(--uyari-cizgi)">dikkat</span>
+            <span style="--renk: var(--hata-cizgi)">uyumsuz</span>
+            <span style="--renk: #5b6678">doğrulanamıyor / parça yok</span>
+          </div>
+          <p class="soluk">Çizginin üzerine gelince hangi kontrolün ne dediği görünür. Kesikli kutu, o parçanın henüz eklenmediğini gösterir.</p>
+        </section>
+
+        <section class="kart">
+          <h2>Uyum kontrolleri</h2>
+          <div id="uyum-sayaci" class="cipler"></div>
+          <div id="uyum-listesi"></div>
+          <p class="soluk">✓ uygun · ⚠ dikkat · ✗ uyumsuz · ? değer girilmemiş (tahmin edilmez).
+            Kontroller parçanın durumuna (elimde / planlanan) bakmaz, listedeki her parçayı kapsar.</p>
+        </section>
+      </div>
+
+      <!-- ========== UÇUŞ HESABI ========== -->
+      <div id="sekme-ucus" class="gizli">
+        <section class="kart">
+          <h2>Göstergeler</h2>
+          <div id="ucus-gostergeleri" class="gorsel-izgara"></div>
+        </section>
+
+        <section class="kart">
+          <h2>Ağırlık dağılımı</h2>
+          <div id="agirlik-dagilimi"></div>
+        </section>
+
+        <section class="kart">
+          <h2>Uçuş hesabı</h2>
+          <table class="bilgi"><tbody id="ucus-tablosu"></tbody></table>
+          <ul id="ucus-notlari" class="soluk gizli"></ul>
+          <p class="soluk">Değerin üzerine gelince nasıl hesaplandığı görünür. Motorun itki tablosu yoksa itki ve akım
+            fizik formülüyle tahmin edilir; katsayılar elektronik/hesap/katsayilar.py dosyasındadır.</p>
+        </section>
+      </div>
+
+      <!-- ========== ŞARTNAME ========== -->
+      <div id="sekme-sartname" class="gizli">
+        <section class="kart">
+          <h2>Yarışma şartnamesi</h2>
+          <p id="sartname-mevcut" class="soluk">Bu drone'a şartname eklenmedi (isteğe bağlı).</p>
+          <button type="button" class="tehlike gizli" id="sartname-kaldir">Şartnameyi bu drone'dan kaldır</button>
+
+          <h2 style="margin-top:20px; font-size:0.95rem">Önceden yüklenmiş şartnameler</h2>
+          <div class="satir">
+            <select id="sartname-kutuphane"></select>
+            <button type="button" class="ikincil" id="sartname-bagla">Bu drone'a ekle</button>
+          </div>
+          <p id="sartname-kutuphane-bos" class="soluk gizli">Henüz yüklenmiş şartname yok.</p>
+
+          <h2 style="margin-top:20px; font-size:0.95rem">Yeni şartname yükle (PDF veya Word .docx)</h2>
+          <form id="sartname-yukleme-formu" class="form-izgara">
+            <label for="sartname-ad">Ad</label>
+            <input type="text" id="sartname-ad" maxlength="120" required placeholder="ör. Teknofest 2026 Döner Kanat">
+            <label for="sartname-dosya">Belge</label>
+            <input type="file" id="sartname-dosya" accept=".pdf,.docx" required>
+            <span></span>
+            <div class="satir">
+              <button type="submit" id="sartname-yukle">Yükle ve bu drone'a ekle</button>
+              <span id="sartname-yukleme-durumu" class="soluk"></span>
+            </div>
+          </form>
+          <div id="sartname-hatasi" class="kutu-hata gizli"></div>
+        </section>
+
+        <section class="kart gizli" id="sartname-rapor-karti">
+          <h2>Uyum raporu</h2>
+          <div id="sartname-sayaci" class="cipler"></div>
+          <div id="sartname-raporu"></div>
+          <p class="soluk">✓ uygun · ✗ uygun değil · ? doğrulanamıyor · ℹ puanlanan kriter (yalnızca bilgi) ·
+            ⏳ onay bekliyor. Yalnızca onaylanmış kesin kurallar öneriye ve sonuca katılır.</p>
+        </section>
+
+        <section class="kart gizli" id="sartname-madde-karti">
+          <div class="satir aralikli">
+            <h2 style="margin:0">Maddeler</h2>
+            <button type="button" class="ikincil" id="madde-cikar">✨ Gemini ile maddeleri çıkar</button>
+          </div>
+          <p class="soluk">Maddeleri şartnameyle karşılaştırıp düzeltin ve onaylayın; yanlış bir sınır bütün sonucu bozar.
+            Değerler programın birimlerindedir (g, mm, dk, inç, mAh, TL). Maddeler şartnameye aittir:
+            değişiklik bu şartnameyi kullanan <strong>tüm dronelarda</strong> geçerli olur.</p>
+          <p id="madde-metin-uyarisi" class="kutu-uyari gizli">Bu belgeden metin okunamadı (taranmış/resim PDF olabilir).
+            Maddeleri "+ Madde" ile elle ekleyin.</p>
+          <div class="tablo-kaydirma">
+            <table class="maliyet-tablosu madde-tablosu">
+              <thead><tr><th>Madde</th><th>Sayfa</th><th>Açıklama</th><th>Büyüklük</th><th>Sınır</th><th>Değer</th><th>Sınıf</th><th>Onay</th><th></th></tr></thead>
+              <tbody id="madde-satirlari"></tbody>
+            </table>
+          </div>
+          <div class="satir" style="margin-top:12px">
+            <button type="button" class="ikincil" id="madde-ekle">+ Madde</button>
+            <button type="button" class="ikincil" id="madde-hepsini-onayla">Hepsini onayla</button>
+            <button type="button" id="madde-kaydet">Maddeleri kaydet</button>
+            <span id="madde-durumu" class="soluk"></span>
+          </div>
+          <div id="madde-hatasi" class="kutu-hata gizli"></div>
+        </section>
+      </div>
+
+      <!-- ========== MALİYET ========== -->
+      <div id="sekme-maliyet" class="gizli">
+        <section class="kart">
+          <h2>Toplam maliyet</h2>
+          <table class="bilgi"><tbody id="maliyet-toplamlari"></tbody></table>
+          <p id="kur-bilgisi" class="soluk"></p>
+          <div id="maliyet-uyarisi" class="kutu-uyari gizli"></div>
+          <button type="button" class="ikincil" id="kurlari-yenile">TCMB kurlarını yenile</button>
+        </section>
+
+        <section class="kart">
+          <h2>Kalemler</h2>
+          <p class="soluk">Fiyatları elle girin (1 adet için); değiştirdiğiniz alan hemen kaydedilir.
+            Parça fiyatı katalogda saklanır ve o parçayı kullanan tüm dronelarda geçerlidir.
+            Yabancı para birimindeki fiyatlar TCMB döviz satış kuruyla TL'ye çevrilir (tahmini).
+            Kalemin elimde / planlanan durumu Elektronik sekmesinden değiştirilir.</p>
+          <div class="tablo-kaydirma">
+            <table class="maliyet-tablosu">
+              <thead><tr><th>Kalem</th><th>Durum</th><th>Adet</th><th>Birim fiyat</th><th>Tutar (TL)</th></tr></thead>
+              <tbody id="maliyet-kalemleri"></tbody>
+            </table>
+          </div>
+          <div id="maliyet-hatasi" class="kutu-hata gizli"></div>
+        </section>
+      </div>
+      </div><!-- /adim-icerigi -->
+      </div><!-- /drone-duzeni -->
+    </div>
+  </main>
+
+  <script src="/statik/ortak.js"></script>
+  <script src="/statik/sasi.js"></script>
+  <script src="/statik/elektronik.js"></script>
+  <script src="/statik/oneri.js"></script>
+  <script src="/statik/maliyet.js"></script>
+  <script src="/statik/hedefler.js"></script>
+  <script src="/statik/sartname.js"></script>
+  <script src="/statik/gorseller.js"></script>
+  <script src="/statik/ozet_seridi.js"></script>
+  <script src="/statik/drone.js"></script>
+</body>
+</html>

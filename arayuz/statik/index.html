@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{PROGRAM_ADI}}</title>
+  <link rel="stylesheet" href="/statik/stil.css">
+  <link rel="icon" href="{{SIMGE}}">
+</head>
+<body class="ana-sayfa">
+  <!-- Kenarlarda uçuşan dronelar (ucan_droneler.js doldurur; içeriğin arkasında durur) -->
+  <div class="drone-katmani" id="drone-katmani" aria-hidden="true"></div>
+
+  <header>
+    <h1><a href="/"><svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/><circle cx="5" cy="5" r="3"/><circle cx="19" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/></g><rect x="9.5" y="9.5" width="5" height="5" rx="1.2" fill="currentColor"/></svg>{{PROGRAM_ADI}}</a></h1>
+    <nav><a href="/" class="aktif">Ana sayfa</a><a href="/ayarlar">Ayarlar</a></nav>
+    <div class="sistem-durumu"><span class="nabiz"></span>SİSTEM HAZIR · YEREL · <span id="sistem-saati">--:--:--</span></div>
+  </header>
+
+  <main>
+    <section class="kahraman">
+      <!-- Başlığın arkasında dönen radar taraması (yalnızca süs; stil.css) -->
+      <div class="radar" aria-hidden="true"><div class="radar-tarama"></div></div>
+      <div class="ust-etiket">// DRONE TASARIM VE UYGUNLUK SİSTEMİ · {{PROGRAM_ADI_BUYUK}}</div>
+      <h2 class="slogan">Drone tasarla <span class="slogan-ayrac">—</span> Kontrol et <span class="slogan-ayrac">—</span> Harekete geç</h2>
+      <p>Şasini yükle, parçalarını ekle; program uyumu, uçuş süresini, maliyeti ve yarışma şartnamesine
+        uygunluğu senin için hesaplasın.</p>
+    </section>
+
+    <section class="secenekler">
+      <button class="secenek-karti" id="secenek-sifirdan" type="button">
+        <svg class="secenek-ikonu" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></g></svg>
+        <span class="secenek-baslik">Sıfırdan drone yap</span>
+        <span class="soluk">Şasiden başlayarak yeni bir drone tasarla.</span>
+      </button>
+      <button class="secenek-karti" id="secenek-elimdeki" type="button">
+        <svg class="secenek-ikonu" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></g></svg>
+        <span class="secenek-baslik">Elimdeki drone'u geliştir</span>
+        <span class="soluk">Sahip olduğun drone'un şasisini ve parçalarını gir, uyumunu kontrol et.</span>
+      </button>
+      <button class="secenek-karti" id="secenek-kayitli" type="button">
+        <svg class="secenek-ikonu" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></g></svg>
+        <span class="secenek-baslik">Kayıtlı drone'u geliştir</span>
+        <span class="soluk" id="kayitli-ozet">Bu programda daha önce oluşturduğun dronelar.</span>
+      </button>
+    </section>
+
+    <!-- Yeni drone formu (sıfırdan / elimdeki) -->
+    <section class="kart gizli" id="yeni-drone-karti">
+      <h2 id="yeni-drone-basligi"></h2>
+      <form id="yeni-drone-formu" class="form-izgara">
+        <label for="drone-adi">Drone adı</label>
+        <input type="text" id="drone-adi" maxlength="80" required placeholder="ör. Yarış 5 inç">
+
+        <label for="drone-turu">Tür</label>
+        <select id="drone-turu" required></select>
+
+        <label for="drone-amaci">Kullanım amacı</label>
+        <select id="drone-amaci" required></select>
+
+        <label for="drone-sartname">Yarışma şartnamesi</label>
+        <select id="drone-sartname">
+          <option value="">Yok / sonra eklerim</option>
+          <option value="yeni">Yeni belge yükle (PDF / Word)</option>
+        </select>
+
+        <label for="yeni-sartname-ad" class="yeni-sartname-alani gizli">Şartname adı</label>
+        <input type="text" id="yeni-sartname-ad" class="yeni-sartname-alani gizli" maxlength="120"
+               placeholder="ör. Teknofest 2026 Döner Kanat">
+        <label for="yeni-sartname-dosya" class="yeni-sartname-alani gizli">Belge</label>
+        <input type="file" id="yeni-sartname-dosya" class="yeni-sartname-alani gizli" accept=".pdf,.docx">
+
+        <span></span>
+        <div class="satir">
+          <button type="submit" id="olustur-dugmesi">Oluştur ve devam et</button>
+          <button type="button" class="ikincil" id="iptal-dugmesi">Vazgeç</button>
+        </div>
+      </form>
+      <div id="yeni-drone-hatasi" class="kutu-hata gizli"></div>
+    </section>
+
+    <!-- Kayıtlı dronelar -->
+    <section class="kart gizli" id="kayitli-karti">
+      <h2>Kayıtlı dronelar</h2>
+      <div id="kayitli-liste" class="drone-kartlari"></div>
+      <p id="kayitli-bos" class="soluk gizli">Henüz kayıtlı drone yok. "Sıfırdan drone yap" ile başlayabilirsin.</p>
+      <div id="kayitli-hatasi" class="kutu-hata gizli"></div>
+    </section>
+  </main>
+
+  <script src="/statik/ortak.js"></script>
+  <script src="/statik/ucan_droneler.js"></script>
+  <script src="/statik/ana_sayfa.js"></script>
+</body>
+</html>

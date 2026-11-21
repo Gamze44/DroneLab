@@ -1,0 +1,25 @@
+# ---------- Kullanıcı verisi ve gizli bilgiler (ASLA depoya girmez) ----------
+# veri/ içinde Gemini API anahtarı, drone veritabanı, yüklenen şasi ve şartname
+# dosyaları, yerel ayarlar ve günlük dosyası durur.
+veri/
+gemini_anahtari.txt
+ayarlar_yerel.json
+*.sqlite3
+*.log
+
+# Proje raporu kişisel bilgi içerdiği için depoya konmaz (kullanıcı kararı).
+docs/proje_raporu.pdf
+
+# ---------- Python ----------
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# ---------- Editör ve işletim sistemi ----------
+.vscode/
+.idea/
+.claude/
+Thumbs.db
+Desktop.ini

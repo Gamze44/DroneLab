@@ -1,0 +1,6 @@
+# Metin dosyalarının satır sonları depoda tek biçimde (LF) tutulur; Windows'ta CRLF'ye çevrilir.
+* text=auto
+# İkili dosyalar olduğu gibi saklanır.
+*.ico binary
+*.png binary
+*.pdf binary
