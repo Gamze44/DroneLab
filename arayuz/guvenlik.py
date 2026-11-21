@@ -56,6 +56,10 @@ GUVENLIK_BASLIKLARI: Final[tuple[tuple[bytes, bytes], ...]] = (
     (b"referrer-policy", b"no-referrer"),
     (b"cross-origin-opener-policy", b"same-origin"),
     (b"cross-origin-resource-policy", b"same-origin"),
+    # Tarayıcı her seferinde sunucuya sorsun (dosya değişmediyse 304 ile önbellektekini kullanır).
+    # Neden: başlık yokken tarayıcı JS dosyalarını kendi tahminiyle önbellekte tutuyor; program
+    # güncellenince yeni ve eski dosyalar karışıp sayfa "Bilinmeyen bir hata" verebiliyordu.
+    (b"cache-control", b"no-cache"),
 )
 
 HOST_RED_MESAJI: Final[str] = (

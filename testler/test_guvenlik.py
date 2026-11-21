@@ -136,6 +136,8 @@ def test_guvenlik_basliklari(istemci: TestClient, adres: str) -> None:
     assert b["x-frame-options"] == "DENY"
     assert b["x-content-type-options"] == "nosniff"
     assert b["referrer-policy"] == "no-referrer"
+    # Güncellemeden sonra eski JS dosyası önbellekten gelmesin.
+    assert b["cache-control"] == "no-cache"
 
 
 def test_reddedilen_yanitta_da_guvenlik_basliklari(istemci: TestClient) -> None:
