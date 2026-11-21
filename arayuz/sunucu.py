@@ -18,7 +18,14 @@ from fastapi.staticfiles import StaticFiles
 
 from arayuz.drone_rotalari import drone_rotalarini_olustur
 from arayuz.elektronik_rotalari import elektronik_rotalarini_olustur
-from cekirdek.ayarlar import PROGRAM_ADI, PROGRAM_SURUMU, SIMGE_YOLU, STATIK_KLASORU, VERI_KLASORU
+from cekirdek.ayarlar import (
+    EN_FAZLA_SARTNAME_SAYFASI,
+    PROGRAM_ADI,
+    PROGRAM_SURUMU,
+    SIMGE_YOLU,
+    STATIK_KLASORU,
+    VERI_KLASORU,
+)
 from cekirdek.hatalar import (
     DesteklenmeyenDosyaHatasi,
     DroneProgramHatasi,
@@ -47,6 +54,7 @@ SAYFA_YER_TUTUCULARI: Final[dict[str, str]] = {
     "{{PROGRAM_ADI}}": PROGRAM_ADI,
     "{{PROGRAM_ADI_BUYUK}}": PROGRAM_ADI.upper(),
     "{{SIMGE}}": f"{STATIK_ADRES_ONEKI}/{SIMGE_YOLU.name}",
+    "{{SARTNAME_SAYFA_SINIRI}}": str(EN_FAZLA_SARTNAME_SAYFASI),
 }
 
 HTTP_HATALI_ISTEK: Final[int] = 400

@@ -1,6 +1,6 @@
 # Şartname yüklemesi: desteklenen dosyalar ve boyut sınırları
 
-> Durum: 21 Kasım 2026, `gelistirme` dalı (commit `d738ae3`). Bu belge yalnızca mevcut durumu
+> Durum: 21 Kasım 2026, `ozellik/sartname-sayfa-siniri` dalı (50 sayfa sınırı eklendikten sonra). Bu belge yalnızca mevcut durumu
 > raporlar; kod değiştirilmedi. Satır numaraları `gelistirme` dalındaki dosyalara aittir.
 > Kurulu sürümler: FastAPI 0.163.0, Starlette 1.10.0, uvicorn 0.54.0, python-multipart 0.0.33,
 > pypdf 7.1.0, python-docx 1.2.0.
@@ -38,8 +38,8 @@
 
 | Dosya türü | Uzantı ve MIME | Arayüz sınırı | Sunucu sınırı | API sınırı | Minimum | Maksimum (fiilen geçerli) | Kaynak |
 |---|---|---|---|---|---|---|---|
-| **PDF** | `.pdf`. MIME **kontrol edilmiyor**; yalnızca uzantıya bakılıyor | Tür: `accept=".pdf,.docx"` yalnızca dosya seçicide bir filtre, zorlayıcı değil. Boyut: **tanımsız** (JS kontrolü yok) | Kod: en çok 30 MB; 0 bayt reddedilir; parolalı PDF reddedilir; okunamayan PDF reddedilir. Starlette: dosya parçasına **tanımsız** (sınır yok) | Dosya gönderilmez. Metnin ilk **300.000 karakteri** gönderilir (kod). Gemini 3.6 Flash giriş sınırı **1.048.576 token**. Sayfa sayısı sınırı: kodda **tanımsız** (pypdf her sayfayı okur) | **1 bayt** (0 bayt reddedilir). Metni olmayan (taranmış) PDF kabul edilir ama madde çıkarımı yapılamaz | **30 MB (31.457.280 bayt)**. Ancak bu sınır dosya tamamen alındıktan sonra uygulanır; ağ aktarımı ve geçici disk kullanımı fiilen **sınırsız** | `cekirdek/ayarlar.py:71`; `arayuz/drone_rotalari.py:134-145`; `sartname/metin_cikarici.py:16,61,68-72`; `sartname/cikarim.py:17,65-70`; `starlette/formparsers.py:135,171-176,218`; [Gemini 3.6 Flash](https://aistudio.google.com/docs/models/gemini-3.6-flash) |
-| **Word** | `.docx`. MIME **kontrol edilmiyor** | PDF ile aynı | Kod: en çok 30 MB; 0 bayt reddedilir; açılamayan dosya reddedilir. Açılmış (sıkıştırılmamış) içerik boyutu: **tanımsız** | PDF ile aynı (metnin ilk 300.000 karakteri) | **1 bayt** | **30 MB (31.457.280 bayt)**. Aynı uyarı: sınır alım bittikten sonra uygulanır | `sartname/metin_cikarici.py:16,82-92`; diğerleri PDF ile aynı |
+| **PDF** | `.pdf`. MIME **kontrol edilmiyor**; yalnızca uzantıya bakılıyor | Tür: `accept=".pdf,.docx"` yalnızca dosya seçicide bir filtre, zorlayıcı değil. Boyut: **tanımsız** (JS kontrolü yok) | Kod: en çok 30 MB; 0 bayt reddedilir; parolalı PDF reddedilir; okunamayan PDF reddedilir. Starlette: dosya parçasına **tanımsız** (sınır yok) | Dosya gönderilmez. Metnin ilk **300.000 karakteri** gönderilir (kod). Gemini 3.6 Flash giriş sınırı **1.048.576 token**. Sayfa: **en çok 50** (kesin; `sartname/sayfa_sayisi.py`, `cekirdek/ayarlar.py` → `EN_FAZLA_SARTNAME_SAYFASI`) | **1 bayt** (0 bayt reddedilir). Metni olmayan (taranmış) PDF kabul edilir ama madde çıkarımı yapılamaz | **30 MB (31.457.280 bayt)**. Ancak bu sınır dosya tamamen alındıktan sonra uygulanır; ağ aktarımı ve geçici disk kullanımı fiilen **sınırsız** | `cekirdek/ayarlar.py:71`; `arayuz/drone_rotalari.py:134-145`; `sartname/metin_cikarici.py:16,61,68-72`; `sartname/cikarim.py:17,65-70`; `starlette/formparsers.py:135,171-176,218`; [Gemini 3.6 Flash](https://aistudio.google.com/docs/models/gemini-3.6-flash) |
+| **Word** | `.docx`. MIME **kontrol edilmiyor** | PDF ile aynı | Kod: en çok 30 MB; 0 bayt reddedilir; açılamayan dosya reddedilir. Sayfa: **en çok 50**; Word'ün kaydettiği sayfa sayısı (`docProps/app.xml` → `Pages`), yoksa kelime sayısından **tahmini** (500 kelime = 1 sayfa, `SAYFA_BASINA_KELIME`). Açılmış (sıkıştırılmamış) içerik boyutu: **tanımsız** | PDF ile aynı (metnin ilk 300.000 karakteri) | **1 bayt** | **30 MB (31.457.280 bayt)**. Aynı uyarı: sınır alım bittikten sonra uygulanır | `sartname/metin_cikarici.py:16,82-92`; diğerleri PDF ile aynı |
 | Eski Word | `.doc` | Seçicide görünmez ("Tüm dosyalar" seçilirse seçilebilir) | **Reddedilir** (415). Kullanıcıya ".docx olarak kaydet" rehberi gösterilir | — | — | Yüklenemez | `sartname/metin_cikarici.py:34-41` |
 | Görsel ve diğerleri | `.jpg`, `.png`, `.txt`, `.odt` vb. | Seçicide görünmez | **Reddedilir** (415) | — | — | Yüklenemez (görsel işleme yok) | `sartname/metin_cikarici.py:34-41` |
 
@@ -89,9 +89,11 @@
 5. **Tür kontrolü:** MIME türüne ve dosya içeriğinin imzasına (`%PDF-`, ZIP başlığı) bakılmıyor.
    Uzantısı `.pdf` yapılmış başka bir dosya ayrıştırıcıda hata verir ve 400 "Belge okunamadı"
    döner. Güvenli bir sonuç ama nedeni belirsiz.
-6. **Sayfa ve açılmış boyut:** PDF sayfa sayısı ve `.docx`'in açılmış (sıkıştırılmamış) boyutu
-   için sınır yok. Çok sayfalı ya da kötü niyetli sıkıştırılmış (zip bombası) bir belge, işlemciyi
-   ve belleği uzun süre meşgul edebilir. Yerel, tek kullanıcılı bir program için risk düşük.
+6. **Açılmış boyut ve Word sayfa sayısı:** `.docx`'in açılmış (sıkıştırılmamış) boyutu için sınır
+   yok; kötü niyetli sıkıştırılmış (zip bombası) bir belge işlemciyi ve belleği meşgul edebilir
+   (yerel, tek kullanıcılı programda risk düşük). Word dışındaki araçların ürettiği bazı `.docx`
+   dosyalarında `Pages` değeri şablondan kalmış ve güncellenmemiş olabilir; bu durumda 50 sayfa
+   sınırı yanlış (düşük sayfa sayısıyla) uygulanır. Word ve LibreOffice kaydederken bu değeri günceller.
 7. **`ad` alanı:** Uzunluğu yalnızca arayüzde (120) sınırlı; sunucuda yalnızca Starlette'in
    1 MB alan sınırı var.
 
@@ -117,7 +119,7 @@
    ekranına taşınsın.
 5. **İçerik imzası:** Dosyanın ilk baytlarına bakılsın (`%PDF-`, `PK`); uzantı ile içerik
    uyuşmazsa açık bir mesaj verilsin.
-6. **İşleme sınırları:** PDF sayfa sayısına ve `.docx` açılmış boyutuna bir üst sınır konsun.
+6. **İşleme sınırları:** `.docx` açılmış boyutuna bir üst sınır konsun. (Sayfa sınırı eklendi: en çok 50 sayfa.)
 7. **Gemini isteği:** İsteğe bir çıkış sınırı (`max_output_tokens`) eklensin; ücretsiz katmanın
    güncel limitleri AI Studio'dan (https://aistudio.google.com/rate-limit) kontrol edilip
    gönderilen metin uzunluğu buna göre ayarlansın.

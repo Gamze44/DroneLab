@@ -70,6 +70,12 @@ SARTNAME_DOSYALARI_KLASOR_ADI: Final[str] = "sartname_dosyalari"
 # DEĞİŞTİRİLEBİLİR: Yüklenebilecek en büyük şartname belgesi (MB).
 EN_BUYUK_SARTNAME_MB: Final[int] = 30
 
+# DEĞİŞTİRİLEBİLİR: Şartname belgesinin en çok sayfa sayısı (PDF ve Word).
+EN_FAZLA_SARTNAME_SAYFASI: Final[int] = 50
+# DEĞİŞTİRİLEBİLİR: Word belgesinde Word'ün kaydettiği sayfa sayısı yoksa sayfa, kelime
+# sayısından bu oranla tahmin edilir (sonuç "tahmini" diye gösterilir).
+SAYFA_BASINA_KELIME: Final[int] = 500
+
 # Yerel ayar dosyası ve Gemini anahtar dosyası veri/ klasöründe durur (kodun içinde değil).
 # DİKKAT: veri/ klasörü başkasıyla paylaşılacaksa önce anahtar dosyası çıkarılmalı.
 YEREL_AYAR_DOSYA_ADI: Final[str] = "ayarlar_yerel.json"

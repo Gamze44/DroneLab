@@ -19,6 +19,7 @@ from sartname.cikarim import SISTEM_TALIMATI, MaddeDonusturucu, istem_olustur, m
 from sartname.depo import SartnameDeposu
 from sartname.kontrol import MaddeSonucu, SartnameBaglami, SartnameKontrolcusu
 from sartname.metin_cikarici import SartnameMetinCikarici
+from sartname.sayfa_sayisi import SayfaSiniriDenetleyici
 from sartname.modeller import Buyukluk, Madde, MaddeSinifi, Sartname
 
 
@@ -67,6 +68,7 @@ class SartnameServisi:
         self._maliyet = maliyet
         self._yz = yapay_zeka
         self._metin = SartnameMetinCikarici()
+        self._sayfa_siniri = SayfaSiniriDenetleyici()
         self._donusturucu = MaddeDonusturucu()
         self._kontrol = SartnameKontrolcusu()
 
@@ -80,8 +82,8 @@ class SartnameServisi:
         """
         Belgeyi kütüphaneye ekler; drone verilirse ona da bağlar.
 
-        Belgeden metin çıkarılır (taranmış belgede boş kalabilir); maddeler ayrıca
-        "Gemini ile çıkar" veya elle eklenir.
+        Belgeden metin çıkarılır (taranmış belgede boş kalabilir) ve sayfa sınırı
+        denetlenir; maddeler ayrıca "Gemini ile çıkar" veya elle eklenir.
 
         Hatalar:
             DesteklenmeyenDosyaHatasi, DosyaOkumaHatasi, GecersizDegerHatasi, KayitBulunamadiHatasi.
@@ -92,6 +94,8 @@ class SartnameServisi:
         if not ad.strip():
             raise GecersizDegerHatasi("Şartnameye bir ad verin (ör. yarışmanın adı ve yılı).")
         metin = self._metin.cikar(gecici_yol)
+        # Sayfa sınırı kopyalamadan önce denetlenir: reddedilen belge kütüphanede iz bırakmasın.
+        self._sayfa_siniri.denetle(gecici_yol, metin)
         goreli = Path(SARTNAME_DOSYALARI_KLASOR_ADI) / f"{uuid.uuid4().hex}{uzanti}"
         hedef = self._veri_klasoru / goreli
         hedef.parent.mkdir(parents=True, exist_ok=True)

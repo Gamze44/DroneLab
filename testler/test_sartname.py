@@ -12,7 +12,8 @@ import pytest
 from arastirma.saglayici import ArastirmaSaglayicisi
 from arayuz.sunucu import sunucu_olustur
 from cekirdek.hatalar import DesteklenmeyenDosyaHatasi, DosyaOkumaHatasi, GecersizDegerHatasi
-from cekirdek.ayarlar import ANAHTAR_ORTAM_DEGISKENLERI
+from cekirdek.ayarlar import ANAHTAR_ORTAM_DEGISKENLERI, EN_FAZLA_SARTNAME_SAYFASI
+from sartname.sayfa_sayisi import SayfaSayisi
 from sartname.cikarim import MaddeDonusturucu
 from sartname.metin_cikarici import SartnameMetinCikarici
 from sartname.modeller import Buyukluk, Madde, SinirTuru
@@ -59,6 +60,42 @@ def word_belgesi(yol: Path) -> Path:
     tablo.rows[0].cells[0].text = "Pil"
     tablo.rows[0].cells[1].text = "En fazla 4S"
     belge.save(str(yol))
+    return yol
+
+
+def cok_sayfali_pdf(yol: Path, sayfa: int) -> Path:
+    """Verilen sayıda boş sayfası olan PDF."""
+    from pypdf import PdfWriter
+
+    yazici = PdfWriter()
+    for _ in range(sayfa):
+        yazici.add_blank_page(width=612, height=792)
+    with yol.open("wb") as f:
+        yazici.write(f)
+    return yol
+
+
+def word_sayfali(yol: Path, kelime: int, pages: int | None) -> Path:
+    """
+    Word belgesi üretir. pages verilirse docProps/app.xml'deki "Pages" o değer yapılır;
+    None ise "Pages" alanı silinir (Word dışı araçların ürettiği dosyalar gibi).
+    """
+    import re
+    import zipfile
+
+    gecici = yol.with_suffix(".gecici.docx")
+    belge = docx.Document()
+    belge.add_paragraph(" ".join(["kelime"] * kelime))
+    belge.save(str(gecici))
+    with zipfile.ZipFile(gecici) as kaynak, zipfile.ZipFile(yol, "w", zipfile.ZIP_DEFLATED) as hedef:
+        for oge in kaynak.infolist():
+            veri = kaynak.read(oge.filename)
+            if oge.filename == "docProps/app.xml":
+                metin = veri.decode("utf-8")
+                yeni = f"<Pages>{pages}</Pages>" if pages is not None else ""
+                veri = re.sub(r"<Pages>\d+</Pages>", yeni, metin).encode("utf-8")
+            hedef.writestr(oge, veri)
+    gecici.unlink()
     return yol
 
 
@@ -181,6 +218,42 @@ def test_kutuphane_ve_ikinci_dronea_ekleme(ortam) -> None:
     assert istemci.delete(f"/api/sartnameler/{y['kimlik']}").status_code == 200
     assert istemci.get("/api/sartnameler").json() == []
     assert not any((tmp / "veri" / "sartname_dosyalari").iterdir())
+
+
+def test_sayfa_sayaci() -> None:
+    import tempfile
+
+    from sartname.sayfa_sayisi import SayfaSayaci
+
+    with tempfile.TemporaryDirectory() as klasor:
+        k = Path(klasor)
+        assert SayfaSayaci().say(cok_sayfali_pdf(k / "a.pdf", 3), "") == SayfaSayisi(3)
+        assert SayfaSayaci().say(word_sayfali(k / "b.docx", 10, pages=7), "") == SayfaSayisi(7)
+        # Word sayfa bilgisi yoksa kelime sayısından tahmin: 1001 kelime / 500 → 3 sayfa (yukarı yuvarlanır)
+        assert SayfaSayaci().say(word_sayfali(k / "c.docx", 1001, pages=None), "x " * 1001) == SayfaSayisi(3, tahmini=True)
+
+
+def test_pdf_sayfa_siniri(ortam) -> None:
+    istemci, (x, _), _, tmp = ortam
+    assert _yukle(istemci, cok_sayfali_pdf(tmp / "elli.pdf", EN_FAZLA_SARTNAME_SAYFASI), drone=x).status_code == 200
+    yanit = _yukle(istemci, cok_sayfali_pdf(tmp / "fazla.pdf", EN_FAZLA_SARTNAME_SAYFASI + 1), ad="Uzun")
+    assert yanit.status_code == 400
+    hata = yanit.json()["hata"]
+    assert f"en çok {EN_FAZLA_SARTNAME_SAYFASI} sayfa" in hata and f"{EN_FAZLA_SARTNAME_SAYFASI + 1} sayfa" in hata
+    assert "tahmini" not in hata  # PDF'te sayfa sayısı kesin
+    assert [s["ad"] for s in istemci.get("/api/sartnameler").json()] == ["Yarışma 2026"]  # reddedilen kaydedilmedi
+    assert len(list((tmp / "veri" / "sartname_dosyalari").iterdir())) == 1  # belge kopyası da yok
+
+
+def test_word_sayfa_siniri_kayitli_ve_tahmini(ortam) -> None:
+    istemci, _, _, tmp = ortam
+    # Word'ün kaydettiği sayfa sayısı kullanılır (kelime az olsa bile).
+    yanit = _yukle(istemci, word_sayfali(tmp / "kayitli.docx", 50, pages=60))
+    assert yanit.status_code == 400 and "60 sayfa" in yanit.json()["hata"] and "tahmini" not in yanit.json()["hata"]
+    # Sayfa bilgisi yoksa kelime sayısından tahmin edilir ve "tahmini" yazılır: 26.000 / 500 = 52 sayfa.
+    yanit = _yukle(istemci, word_sayfali(tmp / "tahmin.docx", 26_000, pages=None))
+    assert yanit.status_code == 400 and "52 sayfa" in yanit.json()["hata"] and "tahmini" in yanit.json()["hata"]
+    assert _yukle(istemci, word_sayfali(tmp / "kisa.docx", 1_000, pages=None)).status_code == 200
 
 
 def test_yukleme_hatalari(ortam) -> None:
