@@ -51,6 +51,10 @@ class SasiGeometrisi:
         delik_sayisi: Levhadaki delik sayısı.
         uyarilar: Kullanıcıya gösterilecek Türkçe uyarılar.
         ag: 3B önizleme aşamasında kullanılacak trimesh ağı; levhada None.
+        ozdes_govde_sayisi: Dosyadaki özdeş büyük gövde sayısı (ör. baskı tablasına dizilmiş
+            4 kol = 4); adet önerisinde kullanılır.
+        tek_govde_olculeri: En büyük tek gövdenin x, y, z boyutları (ör. tek bir kolun boyu);
+            dosya tek gövdeyse olculer ile aynıdır, bilinmiyorsa None.
     """
 
     dosya_adi: str
@@ -66,6 +70,53 @@ class SasiGeometrisi:
     delik_sayisi: int = 0
     uyarilar: list[str] = field(default_factory=list)
     ag: Any = field(default=None, repr=False)
+    ozdes_govde_sayisi: int = 1
+    tek_govde_olculeri: tuple[float, float, float] | None = None
+
+
+class ParcaRolu(str, Enum):
+    """Parçalı şaside bir parçanın görevi. Değerler veritabanında saklanır; değiştirilmemeli."""
+
+    GOVDE = "govde"
+    KOL = "kol"
+    AYAK = "ayak"
+    DIGER = "diger"
+
+
+PARCA_ROLU_ADLARI: dict[ParcaRolu, str] = {
+    ParcaRolu.GOVDE: "Gövde",
+    ParcaRolu.KOL: "Kol",
+    ParcaRolu.AYAK: "Ayak",
+    ParcaRolu.DIGER: "Diğer",
+}
+
+
+@dataclass
+class SasiParcasi:
+    """
+    Parçalı şasinin (zip) bir parçası.
+
+    Alanlar:
+        sira: Zip içindeki sıra (parçanın kimliği gibi kullanılır).
+        geometri: Parça dosyasından okunan geometri (dosya biriminde).
+        rol: Gövde / kol / ayak / diğer (program önerir, kullanıcı değiştirebilir).
+        adet: Şasideki adedi (ör. tek kol dosyası için 4).
+    """
+
+    sira: int
+    geometri: SasiGeometrisi
+    rol: ParcaRolu = ParcaRolu.DIGER
+    adet: int = 1
+
+
+class DingilKaynagi(str, Enum):
+    """Dingil mesafesinin nereden geldiği. Değerler saklanır; değiştirilmemeli."""
+
+    ELLE = "elle"
+    """Kullanıcı yazdı."""
+
+    HESAP = "hesap"
+    """Gövde ve kol parçasından hesaplandı ve kullanıcı onayladı (tahmini)."""
 
 
 @dataclass
@@ -75,13 +126,21 @@ class KayitliSasi:
 
     Alanlar:
         saklanan_dosya: Şasi dosyasının kopyasının veri klasörüne göre yolu.
-        geometri: Dosyadan okunan geometri (ag alanı saklanmaz, None gelir).
+        geometri: Dosyadan okunan geometri (ag alanı saklanmaz, None gelir). Parçalı
+            şaside parçaların özeti (en büyük ölçüler, adetlerle toplam hacim).
         olculer: Birim onaylandıysa mm ölçüleri; onaylanmadıysa None.
+        parcalar: Parçalı şasinin (zip) parçaları; tek dosyalı şaside boş.
     """
 
     saklanan_dosya: str
     geometri: SasiGeometrisi
     olculer: "SasiOlculeri | None" = None
+    parcalar: list[SasiParcasi] = field(default_factory=list)
+
+    @property
+    def parcali_mi(self) -> bool:
+        """Şasi birden çok parça dosyasından (zip) mı oluşuyor."""
+        return bool(self.parcalar)
 
 
 @dataclass(frozen=True)
@@ -113,6 +172,11 @@ class SasiOlculeri:
         hacim_mm3: Katı modelin hacmi, mm3; levhada None.
         alan_mm2: Levhanın net alanı, mm2; katıda None.
         uyarilar: Kullanıcıya gösterilecek Türkçe uyarılar.
+        dingil_mm: Kullanıcının girdiği ya da onayladığı çapraz motor–motor mesafesi;
+            None ise tek dosyalı şaside dış ölçüden tahmin edilir.
+        dingil_kaynagi: Dingilin nereden geldiği (elle / hesap); dingil yoksa None.
+        parca_sayisi: Parçalı şaside parça dosyası sayısı; tek dosyada 0.
+        tahmini: En/boy dosyadan doğrudan ölçülmediyse (parçalı şasi) True.
     """
 
     birim: str
@@ -122,3 +186,17 @@ class SasiOlculeri:
     hacim_mm3: float | None = None
     alan_mm2: float | None = None
     uyarilar: list[str] = field(default_factory=list)
+    dingil_mm: float | None = None
+    dingil_kaynagi: DingilKaynagi | None = None
+    parca_sayisi: int = 0
+    tahmini: bool = False
+
+    @property
+    def parcali_mi(self) -> bool:
+        """Ölçüler parçalı (zip) şasiye mi ait."""
+        return self.parca_sayisi > 0
+
+    @property
+    def dingil_bilinmiyor(self) -> bool:
+        """Parçalı şaside dingil girilmediyse True (dış ölçüden tahmin edilemez)."""
+        return self.parcali_mi and self.dingil_mm is None

@@ -18,8 +18,10 @@ from sasi.disa_aktarma_rehberi import (
 from sasi.okuyucular.ag_okuyucu import AgOkuyucu
 from sasi.okuyucular.dxf_okuyucu import DxfOkuyucu
 from sasi.okuyucular.temel import SasiOkuyucu
+from sasi.okuyucular.zip_okuyucu import ZipSasiOkuyucu
 
-# DEĞİŞTİRİLEBİLİR: Yeni okuyucu (ör. STEP) yazıldığında buraya eklenir.
+# DEĞİŞTİRİLEBİLİR: Yeni okuyucu (ör. STEP) yazıldığında buraya eklenir. Zip içindeki
+# parçalar da bu okuyucularla okunur.
 OKUYUCU_SINIFLARI: Final[tuple[type[SasiOkuyucu], ...]] = (AgOkuyucu, DxfOkuyucu)
 
 STEP_UZANTILARI: Final[tuple[str, ...]] = (".step", ".stp")
@@ -35,8 +37,39 @@ class OkuyucuSecici:
 
     @property
     def desteklenen_uzantilar(self) -> list[str]:
-        """Okunabilen uzantıların sıralı listesi (ör. [".3mf", ".dxf", ...])."""
-        return sorted(self._okuyucular)
+        """Okunabilen uzantıların sıralı listesi (ör. [".3mf", ".dxf", ...]); parçalı şasi zip'i dahil."""
+        return sorted([*self._okuyucular, *ZipSasiOkuyucu.UZANTILAR])
+
+    @staticmethod
+    def parcali_mi(dosya_adi: str | Path) -> bool:
+        """
+        Dosyanın parçalı şasi arşivi (zip) olup olmadığını uzantıdan söyler.
+
+        Parametreler:
+            dosya_adi: Dosya adı veya yolu.
+        Dönüş:
+            Zip ise True.
+        """
+        return Path(dosya_adi).suffix.lower() in ZipSasiOkuyucu.UZANTILAR
+
+    def parcali_okuyucu(self) -> ZipSasiOkuyucu:
+        """Zip içindeki parçaları bu seçicinin okuyucularıyla okuyan okuyucuyu döndürür."""
+        return ZipSasiOkuyucu(self._parca_okuyucusu)
+
+    def _parca_okuyucusu(self, uzanti: str) -> SasiOkuyucu | None:
+        """Zip içindeki bir parça uzantısı için okuyucu; desteklenmiyorsa None."""
+        sinif = self._okuyucular.get(uzanti)
+        return sinif() if sinif is not None else None
+
+    def denetle(self, dosya_adi: str | Path) -> None:
+        """
+        Dosya türünün okunabildiğini denetler (tek dosya veya parçalı şasi zip'i).
+
+        Hatalar:
+            DesteklenmeyenDosyaHatasi: Tür desteklenmiyorsa.
+        """
+        if not self.parcali_mi(dosya_adi):
+            self.sec(dosya_adi)
 
     def sec(self, dosya_adi: str | Path) -> SasiOkuyucu:
         """

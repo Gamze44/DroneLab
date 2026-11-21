@@ -138,7 +138,10 @@ class SartnameKontrolcusu:
         if buyukluk is Buyukluk.BOYUT:
             if b.sasi_olculeri is None:
                 return Olcum(None, neden="Şasi dosyası yüklenmedi veya birimi onaylanmadı")
-            return Olcum(max(b.sasi_olculeri.en_mm, b.sasi_olculeri.boy_mm))
+            if b.sasi_olculeri.dingil_bilinmiyor:
+                # Parçalı şaside dingil olmadan dış ölçü yalnızca en büyük parçadır; gerçeğinden küçüktür.
+                return Olcum(None, neden="Parçalı şasinin dingil mesafesi girilmedi; dış ölçü bilinmiyor")
+            return Olcum(max(b.sasi_olculeri.en_mm, b.sasi_olculeri.boy_mm), tahmini=b.sasi_olculeri.tahmini)
         if buyukluk is Buyukluk.PERVANE_CAPI:
             return _en_buyuk(
                 [p.cap_inc for p, _ in b.kalemler if isinstance(p, Pervane)], "Pervane eklenmedi", "Pervane çapı girilmemiş"

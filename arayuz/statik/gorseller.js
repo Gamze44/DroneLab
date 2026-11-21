@@ -41,7 +41,10 @@ function sasiGorunumunuCiz() {
   const kap = $("sasi-gorunumu");
   const g = elektronikOzeti.sasi_gorunumu;
   if (!g) {
-    bosMesaj(kap, "Şasi dosyası yükleyip birimini onaylayınca üstten görünüş burada çizilir.");
+    bosMesaj(kap, elektronikOzeti.sasi_dingil_bilinmiyor
+      ? "Parçalı şaside motor yerleri dingil mesafesine göre çizilir. Yukarıdaki \"Dingil mesafesi\" kartından " +
+        "dingili gir veya gövde ve koldan hesaplat."
+      : "Şasi dosyası yükleyip birimini onaylayınca üstten görünüş burada çizilir.");
     return;
   }
   const n = elektronikOzeti.motor_sayisi;
@@ -293,7 +296,7 @@ function uyumSemasiniCiz() {
 
   for (const [anahtar, dugum] of Object.entries(SEMA_DUGUMLERI)) {
     if (anahtar === "pdb" && !pdbVar) continue; // PDB yoksa pil doğrudan ESC'ye bağlanır
-    const liste = dugum.tur === null ? (o.sasi_gorunumu || o.agirlik.sasi_g ? [{ gorunen_ad: "eklendi" }] : []) : parcalar(dugum.tur);
+    const liste = dugum.tur === null ? (o.sasi_olculeri_var || o.agirlik.sasi_g ? [{ gorunen_ad: "eklendi" }] : []) : parcalar(dugum.tur);
     const bos = liste.length === 0;
     const ikinci = bos ? "eklenmedi" : liste.length > 1 && dugum.tur === "diger"
       ? liste.map((p) => p.alt_tur_adi).join(", ") : liste[0].gorunen_ad;

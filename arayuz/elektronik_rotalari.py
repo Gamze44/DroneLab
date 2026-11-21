@@ -123,6 +123,9 @@ def elektronik_rotalarini_olustur(servis: ElektronikServisi) -> APIRouter:
             "ucus": ucus_sozlugu(ozet.ucus),
             "hedefler": hedef_sozlugu(ozet.hedefler),
             "sasi_gorunumu": sasi_gorunumu_sozlugu(ozet.sasi_gorunumu),
+            # Parçalı şaside dingil girilmediyse görünüş çizilmez; arayüz nedenini yazabilsin diye.
+            "sasi_olculeri_var": ozet.sasi_olculeri is not None,
+            "sasi_dingil_bilinmiyor": ozet.sasi_olculeri is not None and ozet.sasi_olculeri.dingil_bilinmiyor,
             "motor_sayisi": ozet.drone.motor_sayisi,
         }
 

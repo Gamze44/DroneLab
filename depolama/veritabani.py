@@ -189,10 +189,23 @@ CREATE TABLE IF NOT EXISTS asistan_onerileri (
 CREATE INDEX IF NOT EXISTS asistan_onerileri_drone ON asistan_onerileri (drone_kimlik, kimlik);
 """
 
+# Sürüm 8: parçalı şasi (zip). Her parçanın geometrisi, rolü ve adedi ayrı satırdır; sasiler
+# tablosundaki geometri parçaların özetidir. Tek dosyalı şaside bu tabloda satır olmaz.
+SEMA_V8: Final[str] = """
+CREATE TABLE IF NOT EXISTS sasi_parcalari (
+    drone_kimlik   INTEGER NOT NULL REFERENCES dronelar(kimlik) ON DELETE CASCADE,
+    sira           INTEGER NOT NULL,
+    rol            TEXT    NOT NULL,
+    adet           INTEGER NOT NULL CHECK (adet > 0),
+    geometri_json  TEXT    NOT NULL,
+    PRIMARY KEY (drone_kimlik, sira)
+);
+"""
+
 # Sürüm numarası -> o sürüme geçmek için çalıştırılacak SQL. Yeni sürüm eklenince
 # buraya bir satır eklenir; mevcut satırlar asla değiştirilmez.
 GOCLER: Final[dict[int, str]] = {
-    1: SEMA_V1, 2: SEMA_V2, 3: SEMA_V3, 4: SEMA_V4, 5: SEMA_V5, 6: SEMA_V6, 7: SEMA_V7,
+    1: SEMA_V1, 2: SEMA_V2, 3: SEMA_V3, 4: SEMA_V4, 5: SEMA_V5, 6: SEMA_V6, 7: SEMA_V7, 8: SEMA_V8,
 }
 SEMA_SURUMU: Final[int] = max(GOCLER)
 

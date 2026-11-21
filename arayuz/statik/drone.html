@@ -64,9 +64,10 @@
           <h2>Şasi dosyası</h2>
           <p id="mevcut-sasi" class="soluk gizli"></p>
           <p class="soluk">Desteklenen türler: STL, OBJ, 3MF (3B model) ve DXF (levha şasi).
+            Kol, gövde, ayak gibi parçaları ayrı dosyalarda olan bir şasiyi ZIP olarak yükleyebilirsin.
             STEP desteği sonraki sürümde eklenecek. Dosyan yoksa bu adımı atlayıp ağırlığı aşağıdan elle girebilirsin.</p>
           <form id="yukleme-formu" class="satir">
-            <input type="file" id="dosya-secici" accept=".stl,.obj,.3mf,.dxf" required>
+            <input type="file" id="dosya-secici" accept=".stl,.obj,.3mf,.dxf,.zip" required>
             <button type="submit" id="yukle-dugmesi">Yükle</button>
             <span id="yukleme-durumu" class="soluk"></span>
           </form>
@@ -94,6 +95,24 @@
           <div id="okuma-uyarilari" class="kutu-uyari gizli"></div>
         </section>
 
+        <section class="kart gizli" id="parcalar-karti">
+          <h2>Şasi parçaları</h2>
+          <p class="soluk">Program her parçanın görevini dosya adından, adedini dosyadaki kopya sayısından tahmin etti;
+            yanlışsa değiştirip kaydet. Adet, dosyanın şasiye kaç kez takıldığıdır: 4 kolun dördü de tek dosyadaysa 1,
+            dosyada tek kol varsa 4 yaz. Toplam hacim adetlerle hesaplanır.</p>
+          <div class="tablo-kaydirma">
+            <table class="maliyet-tablosu parca-tablosu">
+              <thead><tr><th>Dosya</th><th>Ölçü (dosya birimi)</th><th>Dosyadaki kopya</th><th>Görev</th><th>Adet</th></tr></thead>
+              <tbody id="parca-satirlari"></tbody>
+            </table>
+          </div>
+          <div class="satir" style="margin-top:12px">
+            <button type="button" id="parcalari-kaydet">Parçaları kaydet</button>
+            <span id="parca-durumu" class="soluk"></span>
+          </div>
+          <div id="parca-hatasi" class="kutu-hata gizli"></div>
+        </section>
+
         <section class="kart gizli" id="sonuc-karti">
           <h2>Şasi ölçüleri</h2>
           <table class="bilgi"><tbody id="sonuc-bilgileri"></tbody></table>
@@ -101,11 +120,46 @@
           <button type="button" class="ikincil" id="birim-degistir" style="margin-top:12px">Birimi değiştir</button>
         </section>
 
+        <section class="kart gizli" id="dingil-karti">
+          <h2>Dingil mesafesi</h2>
+          <p class="soluk">Çapraz iki motorun mil merkezleri arası (ör. 5 inç freestyle şasilerde ≈ 220 mm).
+            Pervane sığma kontrolü ve üstten görünüş bunu kullanır. Biliyorsan elle gir; girmezsen
+            <span id="dingil-yoksa"></span></p>
+          <p>Kullanılan dingil: <span id="dingil-degeri" class="olcu-buyuk"></span> <span id="dingil-kaynagi" class="etiket"></span></p>
+          <form id="dingil-formu" class="satir">
+            <input type="number" id="dingil-girdisi" min="20" max="3000" step="any" placeholder="mm" required>
+            <span>mm</span>
+            <button type="submit">Kaydet</button>
+            <button type="button" class="ikincil" id="dingil-temizle">Girileni sil</button>
+          </form>
+
+          <div id="dingil-hesap" class="gizli" style="margin-top:16px">
+            <h3>Gövde ve koldan hesapla <span class="etiket uyari">tahmini</span></h3>
+            <div class="satir">
+              <label for="dingil-govde">Gövde</label><select id="dingil-govde"></select>
+              <label for="dingil-kol">Kol</label><select id="dingil-kol"></select>
+              <label for="dingil-baglanti">Bağlantı</label><select id="dingil-baglanti"></select>
+              <button type="button" class="ikincil" id="dingil-hesapla">Hesapla</button>
+            </div>
+            <div id="dingil-tahmini" class="kutu-uyari gizli">
+              <p><strong>Tahmini dingil: <span id="dingil-tahmin-degeri"></span></strong></p>
+              <p id="dingil-tahmin-aciklamasi" class="soluk"></p>
+              <p class="soluk">Onaylarsan bu değer kaydedilir; istediğin zaman elle değiştirebilirsin.</p>
+              <div class="satir">
+                <button type="button" id="dingil-onayla">Onayla ve kaydet</button>
+                <button type="button" class="ikincil" id="dingil-vazgec">Vazgeç</button>
+              </div>
+            </div>
+          </div>
+          <div id="dingil-hatasi" class="kutu-hata gizli"></div>
+        </section>
+
         <section class="kart">
           <h2>Üstten görünüş <span class="etiket uyari">tahmini</span></h2>
           <div id="sasi-gorunumu"></div>
-          <p class="soluk">Kesikli kutu şasinin dış ölçüsüdür. Motor yerleri bu ölçüden tahmin edilir (gerçek kol
-            uzunluğu bilinmez). Daireler takılı pervaneyi, kesikli daire sığabilecek en büyük pervaneyi gösterir.
+          <p class="soluk">Kesikli kutu şasinin dış ölçüsüdür. Dingil girilmediyse motor yerleri bu ölçüden tahmin
+            edilir (gerçek kol uzunluğu bilinmez); girildiyse motorlar dingil çemberine yerleştirilir. Daireler takılı
+            pervaneyi, kesikli daire sığabilecek en büyük pervaneyi gösterir.
             Kırmızı pervane komşusuna veya gövdeye çarpabilir demektir.</p>
         </section>
 

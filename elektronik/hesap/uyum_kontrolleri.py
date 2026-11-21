@@ -242,6 +242,8 @@ class PervaneSasiKontrolu(UyumKontrolu):
             return self._eklenmedi("Pervane")
         if baglam.sasi_olculeri is None:
             return [AraSonuc(D.BILINMIYOR, "Şasi dosyası yüklenmedi veya birimi onaylanmadı (Şasi sekmesi).")]
+        if baglam.sasi_olculeri.dingil_bilinmiyor:
+            return [AraSonuc(D.BILINMIYOR, "Parçalı şasinin dingil mesafesi girilmedi (Şasi sekmesi).")]
         sinir = self._tahminci.tahmin_et(baglam.sasi_olculeri, baglam.motor_sayisi)
         if sinir is None:
             return [AraSonuc(D.UYARI, "Şasi ölçüsü pervane sığdırmak için çok küçük görünüyor; ölçüleri kontrol edin.")]

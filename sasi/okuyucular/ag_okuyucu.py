@@ -6,6 +6,7 @@ Hacim yalnızca model kapalı (su geçirmez) ise güvenilirdir, bu yüzden
 kapalı olmayan modeller için uyarı üretilir.
 """
 
+from dataclasses import dataclass
 import logging
 from pathlib import Path
 from typing import Final
@@ -45,6 +46,24 @@ TRIMESH_BIRIMLERI: Final[dict[str, str]] = {
 # trimesh'in gövde sayımı varsayılan olarak scipy ister; scipy büyük bir bağımlılık
 # olduğu için zaten kurulu olan networkx kullanılır.
 GRAF_MOTORU: Final[str] = "networkx"
+# DEĞİŞTİRİLEBİLİR: Alanı ve ölçüleri en büyük gövdeden bu oranda farklı olanlar "özdeş" sayılır.
+OZDES_GOVDE_TOLERANSI: Final[float] = 0.02
+# Bundan çok gövdesi olan dosyada (ör. dağınık ağ) ayrıntılı inceleme yapılmaz; süre uzamasın.
+EN_FAZLA_INCELENEN_GOVDE: Final[int] = 2000
+
+
+@dataclass(frozen=True)
+class GovdeAnalizi:
+    """
+    Alanlar:
+        govde_sayisi: Birbirine bağlı olmayan parça sayısı.
+        ozdes_sayisi: En büyük gövdeyle özdeş gövde sayısı (kendisi dahil).
+        tek_govde_olculeri: En büyük gövdenin x, y, z boyutları; incelenmediyse None.
+    """
+
+    govde_sayisi: int
+    ozdes_sayisi: int = 1
+    tek_govde_olculeri: tuple[float, float, float] | None = None
 
 
 class DisDosyaEngelleyici(Resolver):
@@ -123,14 +142,14 @@ class AgOkuyucu(SasiOkuyucu):
         elif isaretli_hacim < 0:
             uyarilar.append("Modelin yüzey yönleri ters görünüyor; hacim mutlak değer alınarak hesaplandı.")
 
-        govde_sayisi = self._govde_say(ag)
-        if govde_sayisi > 1:
+        olculer = tuple(float(d) for d in ag.extents)
+        analiz = self._govdeleri_incele(ag)
+        if analiz.govde_sayisi > 1:
             uyarilar.append(
-                f"Dosyada birbirine bağlı olmayan {govde_sayisi} ayrı parça var. "
+                f"Dosyada birbirine bağlı olmayan {analiz.govde_sayisi} ayrı parça var. "
                 "Hepsinin şasiye ait olduğundan emin olun."
             )
 
-        olculer = tuple(float(d) for d in ag.extents)
         return SasiGeometrisi(
             dosya_adi=yol.name,
             tur=GeometriTuru.KATI,
@@ -138,10 +157,12 @@ class AgOkuyucu(SasiOkuyucu):
             dosya_birimi=dosya_birimi,
             hacim=abs(isaretli_hacim),
             ucgen_sayisi=len(ag.faces),
-            govde_sayisi=govde_sayisi,
+            govde_sayisi=analiz.govde_sayisi,
             kapali_mi=kapali_mi,
             uyarilar=uyarilar,
             ag=ag,
+            ozdes_govde_sayisi=analiz.ozdes_sayisi,
+            tek_govde_olculeri=analiz.tek_govde_olculeri or (olculer[0], olculer[1], olculer[2]),
         )
 
     @staticmethod
@@ -188,16 +209,38 @@ class AgOkuyucu(SasiOkuyucu):
         return birim
 
     @staticmethod
-    def _govde_say(ag: trimesh.Trimesh) -> int:
+    def _govdeleri_incele(ag: trimesh.Trimesh) -> GovdeAnalizi:
         """
-        Birbirine bağlı olmayan parça (gövde) sayısını bulur.
+        Birbirine bağlı olmayan parçaları (gövdeleri) sayar; özdeş büyük gövdeleri bulur.
+
+        Neden: Parçalı şasi dosyalarında aynı parça çoğu zaman baskı tablasına dizilmiş
+        birkaç kopya olarak gelir (ör. 4 kol tek dosyada). Adet önerisi ve kol boyu
+        (dingil hesabı) için tek bir gövdenin ölçüsü ve kopya sayısı gerekir. Birkaç
+        milimetrelik kırıntılar (somun yuvası vb.) yüzey alanına göre ayıklanır.
 
         Parametreler:
             ag: trimesh ağı.
         Dönüş:
-            Gövde sayısı.
+            GovdeAnalizi.
         """
         bilesenler = trimesh.graph.connected_components(
             ag.face_adjacency, nodes=np.arange(len(ag.faces)), engine=GRAF_MOTORU
         )
-        return len(bilesenler)
+        sayi = len(bilesenler)
+        if sayi <= 1 or sayi > EN_FAZLA_INCELENEN_GOVDE:
+            return GovdeAnalizi(max(sayi, 1))
+        alanlar = np.array([float(ag.area_faces[b].sum()) for b in bilesenler])
+        en_buyuk = int(np.argmax(alanlar))
+
+        def olculer(bilesen: np.ndarray) -> np.ndarray:
+            noktalar = ag.vertices[ag.faces[bilesen].ravel()]
+            return np.ptp(noktalar, axis=0)
+
+        tek = olculer(bilesenler[en_buyuk])
+        ozdes = sum(
+            1
+            for i, b in enumerate(bilesenler)
+            if abs(alanlar[i] - alanlar[en_buyuk]) <= OZDES_GOVDE_TOLERANSI * alanlar[en_buyuk]
+            and np.allclose(np.sort(olculer(b)), np.sort(tek), rtol=OZDES_GOVDE_TOLERANSI)
+        )
+        return GovdeAnalizi(sayi, ozdes, (float(tek[0]), float(tek[1]), float(tek[2])))

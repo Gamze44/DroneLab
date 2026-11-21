@@ -5,7 +5,9 @@
 bilinmez. Bu yüzden sonuç kabadır ve her zaman "tahmini" gösterilir.
 
 Yöntem:
-    1. Dingil mesafesi (çapraz motor–motor) W ≈ √(en² + boy²) × k
+    1. Dingil mesafesi (çapraz motor–motor) W: kullanıcı girdiyse (veya parçalardan hesaplanıp
+       onaylandıysa) o değer; yoksa W ≈ √(en² + boy²) × k. Parçalı şaside dış ölçü dingili
+       vermez, bu yüzden dingil girilmeden tahmin yapılmaz.
     2. Komşu motorlar arası d = W × sin(π / motor sayısı)  (quad: W/√2, hexa: W/2)
     3. En büyük pervane ≈ d − pervane uçları arası boşluk, inçe çevrilip aşağı yuvarlanır.
 """
@@ -70,8 +72,17 @@ class EnBuyukPervaneTahmincisi:
         self.uc_boslugu_mm = uc_boslugu_mm
         self.yuvarlama_adimi_inc = yuvarlama_adimi_inc
 
-    def dingil_mesafesi_mm(self, olculer: SasiOlculeri) -> float:
-        """Tahmini çapraz motor–motor mesafesi, mm."""
+    def dingil_mesafesi_mm(self, olculer: SasiOlculeri) -> float | None:
+        """
+        Çapraz motor–motor mesafesi, mm.
+
+        Dönüş:
+            Girilen dingil; yoksa dış ölçüden tahmin. Parçalı şaside dingil girilmediyse None.
+        """
+        if olculer.dingil_mm is not None:
+            return olculer.dingil_mm
+        if olculer.dingil_bilinmiyor:
+            return None
         return math.hypot(olculer.en_mm, olculer.boy_mm) * self.dingil_katsayisi
 
     def tahmin_et(self, olculer: SasiOlculeri, motor_sayisi: int) -> float | None:
@@ -82,9 +93,14 @@ class EnBuyukPervaneTahmincisi:
             olculer: Birim onaylanmış şasi ölçüleri, mm.
             motor_sayisi: Motor sayısı (motorların bir çember üzerinde eşit aralıklı olduğu kabul edilir).
         Dönüş:
-            Tahmini en büyük pervane çapı, inç; şasi pervane sığmayacak kadar küçükse None.
+            Tahmini en büyük pervane çapı, inç; şasi pervane sığmayacak kadar küçükse veya
+            dingil bilinmiyorsa (parçalı şasi) None. İkisini ayırmak için önce
+            olculer.dingil_bilinmiyor denetlenmeli.
         """
-        komsu_mm = self.dingil_mesafesi_mm(olculer) * math.sin(math.pi / motor_sayisi)
+        dingil = self.dingil_mesafesi_mm(olculer)
+        if dingil is None:
+            return None
+        komsu_mm = dingil * math.sin(math.pi / motor_sayisi)
         cap_mm = komsu_mm - self.uc_boslugu_mm
         if cap_mm <= 0:
             return None
@@ -92,7 +108,9 @@ class EnBuyukPervaneTahmincisi:
         adim_sayisi = math.floor(cap_inc / self.yuvarlama_adimi_inc + YUVARLAMA_PAYI)
         return round(adim_sayisi * self.yuvarlama_adimi_inc, SONUC_BASAMAGI)
 
-    def gorunum(self, olculer: SasiOlculeri, motor_sayisi: int, pervane_cap_inc: float | None) -> SasiGorunumu:
+    def gorunum(
+        self, olculer: SasiOlculeri, motor_sayisi: int, pervane_cap_inc: float | None
+    ) -> SasiGorunumu | None:
         """
         Üstten görünüş çizimi için gereken ölçüleri hesaplar (arayüz birim çevirmesin diye mm de verilir).
 
@@ -101,13 +119,16 @@ class EnBuyukPervaneTahmincisi:
             motor_sayisi: Motor sayısı.
             pervane_cap_inc: Takılı pervanenin çapı, inç; yoksa None.
         Dönüş:
-            SasiGorunumu.
+            SasiGorunumu; dingil bilinmiyorsa (parçalı şasi) None, çünkü motor yerleri çizilemez.
         """
+        dingil = self.dingil_mesafesi_mm(olculer)
+        if dingil is None:
+            return None
         en_buyuk = self.tahmin_et(olculer, motor_sayisi)
         return SasiGorunumu(
             en_mm=olculer.en_mm,
             boy_mm=olculer.boy_mm,
-            dingil_mm=self.dingil_mesafesi_mm(olculer),
+            dingil_mm=dingil,
             en_buyuk_pervane_inc=en_buyuk,
             en_buyuk_pervane_mm=_inc_mm(en_buyuk),
             pervane_cap_inc=pervane_cap_inc,

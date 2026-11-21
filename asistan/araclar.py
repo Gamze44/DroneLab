@@ -251,7 +251,11 @@ class AsistanAraclari:
             },
             "uyum_sayilari": {durum.value: sum(1 for u in ozet.uyum if u.durum is durum) for durum in UyumDurumu},
             "zorunlu_parcalar": [{"etiket": z.etiket, "durum": z.durum.value, "aciklama": z.aciklama} for z in ozet.zorunluluklar],
-            "sasi_olculeri_mm": {"en": s.en_mm, "boy": s.boy_mm, "yukseklik": s.yukseklik_mm} if s else None,
+            "sasi_olculeri_mm": {
+                "en": s.en_mm, "boy": s.boy_mm, "yukseklik": s.yukseklik_mm,
+                "dingil": s.dingil_mm, "dingil_kaynagi": s.dingil_kaynagi.value if s.dingil_kaynagi else None,
+                "parca_sayisi": s.parca_sayisi, "tahmini": s.tahmini,
+            } if s else None,
             "sartname": sartname.ad if sartname else None,
             "parca_satiri_sayisi": len(ozet.kalemler),
         }

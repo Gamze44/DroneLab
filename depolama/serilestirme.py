@@ -9,7 +9,7 @@ diskte duruyor; ağ gerektiğinde dosyadan yeniden okunur.
 import json
 from typing import Any
 
-from sasi.modeller import GeometriTuru, SasiGeometrisi, SasiOlculeri
+from sasi.modeller import DingilKaynagi, GeometriTuru, SasiGeometrisi, SasiOlculeri
 
 
 class SasiSerilestirici:
@@ -38,6 +38,8 @@ class SasiSerilestirici:
             "dis_kontur_sayisi": geometri.dis_kontur_sayisi,
             "delik_sayisi": geometri.delik_sayisi,
             "uyarilar": geometri.uyarilar,
+            "ozdes_govde_sayisi": geometri.ozdes_govde_sayisi,
+            "tek_govde_olculeri": list(geometri.tek_govde_olculeri) if geometri.tek_govde_olculeri else None,
         }
         return json.dumps(sozluk, ensure_ascii=False)
 
@@ -53,6 +55,8 @@ class SasiSerilestirici:
         """
         s = json.loads(metin)
         x, y, z = s["olculer"]
+        # Eski kayıtlarda (sürüm 8 öncesi) bu alanlar yok; varsayılanlar tek gövdeli şasiye uyar.
+        tek = s.get("tek_govde_olculeri")
         return SasiGeometrisi(
             dosya_adi=s["dosya_adi"],
             tur=GeometriTuru(s["tur"]),
@@ -66,6 +70,8 @@ class SasiSerilestirici:
             dis_kontur_sayisi=s.get("dis_kontur_sayisi", 0),
             delik_sayisi=s.get("delik_sayisi", 0),
             uyarilar=list(s.get("uyarilar", [])),
+            ozdes_govde_sayisi=s.get("ozdes_govde_sayisi", 1),
+            tek_govde_olculeri=(tek[0], tek[1], tek[2]) if tek else None,
         )
 
     @staticmethod
@@ -80,14 +86,19 @@ class SasiSerilestirici:
                 "hacim_mm3": olculer.hacim_mm3,
                 "alan_mm2": olculer.alan_mm2,
                 "uyarilar": olculer.uyarilar,
+                "dingil_mm": olculer.dingil_mm,
+                "dingil_kaynagi": olculer.dingil_kaynagi.value if olculer.dingil_kaynagi else None,
+                "parca_sayisi": olculer.parca_sayisi,
+                "tahmini": olculer.tahmini,
             },
             ensure_ascii=False,
         )
 
     @staticmethod
     def olculeri_oku(metin: str) -> SasiOlculeri:
-        """JSON metninden SasiOlculeri nesnesini geri oluşturur."""
+        """JSON metninden SasiOlculeri nesnesini geri oluşturur (eski kayıtlarda yeni alanlar varsayılan)."""
         s = json.loads(metin)
+        kaynak = s.get("dingil_kaynagi")
         return SasiOlculeri(
             birim=s["birim"],
             en_mm=s["en_mm"],
@@ -96,4 +107,8 @@ class SasiSerilestirici:
             hacim_mm3=s.get("hacim_mm3"),
             alan_mm2=s.get("alan_mm2"),
             uyarilar=list(s.get("uyarilar", [])),
+            dingil_mm=s.get("dingil_mm"),
+            dingil_kaynagi=DingilKaynagi(kaynak) if kaynak else None,
+            parca_sayisi=s.get("parca_sayisi", 0),
+            tahmini=s.get("tahmini", False),
         )
