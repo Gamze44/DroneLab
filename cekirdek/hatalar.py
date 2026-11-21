@@ -89,11 +89,14 @@ class YapayZekaHatasi(DroneProgramHatasi):
     Parametreler:
         mesaj: Kullanıcıya gösterilecek Türkçe açıklama (anahtarın kendisi asla yazılmaz).
         http_kodu: Arayüze döndürülecek HTTP durum kodu.
+        ayrinti: Sağlayıcının ham hata metni; kullanıcıya gösterilmez, yalnızca program içinde
+            (ör. kotanın günlük mü dakikalık mı dolduğunu anlamak için) kullanılır.
     """
 
-    def __init__(self, mesaj: str, http_kodu: int = HTTPStatus.BAD_GATEWAY) -> None:
+    def __init__(self, mesaj: str, http_kodu: int = HTTPStatus.BAD_GATEWAY, ayrinti: str = "") -> None:
         super().__init__(mesaj)
         self.http_kodu: int = http_kodu
+        self.ayrinti: str = ayrinti
 
 
 class BirimHatasi(DroneProgramHatasi):

@@ -9,6 +9,7 @@ görürdü. Sınırlar FastAPI'ye bildirildiği için böyle istekler 422 ile re
 from typing import Annotated, Final
 
 from fastapi import Path as YolParametresi
+from fastapi import Query as SorguParametresi
 from pydantic import Field
 
 EN_KUCUK_KIMLIK: Final[int] = 1
@@ -19,3 +20,5 @@ EN_BUYUK_KIMLIK: Final[int] = 2**63 - 1
 Kimlik = Annotated[int, YolParametresi(ge=EN_KUCUK_KIMLIK, le=EN_BUYUK_KIMLIK)]
 # İstek gövdesindeki veya formdaki kimlik alanı.
 GovdeKimligi = Annotated[int, Field(ge=EN_KUCUK_KIMLIK, le=EN_BUYUK_KIMLIK)]
+# Adresin sorgu kısmındaki isteğe bağlı kimlik (ör. ?drone_kimlik=3).
+SorguKimligi = Annotated[int | None, SorguParametresi(ge=EN_KUCUK_KIMLIK, le=EN_BUYUK_KIMLIK)]

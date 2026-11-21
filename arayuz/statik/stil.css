@@ -630,4 +630,151 @@ button.acilir-dugme:hover:not(:disabled), button.acilir-dugme:active:not(:disabl
   .acilir-icerik, .acilir-dugme::after, .kart h2:has(> .acilir-dugme) { transition: none; }
 }
 
+/* ===================== DroneLab Asistan paneli (asistan.js) ===================== */
+/* Panel sağdan açılır. Geniş pencerede içerik sola itilir (body sağ boşluğu), dar pencerede
+   içeriğin üstüne açılır. Geçişler sayfanın mevcut diliyle aynıdır: 0,2 sn, "ease". */
+:root {
+  /* DEĞİŞTİRİLEBİLİR: Panel genişliği. İtme eşiği asistan.js'teki ITME_ESIGI'dir. */
+  --asistan-genislik: 400px;
+}
+body { transition: padding-right 0.2s ease; }
+body.asistan-itiyor { padding-right: var(--asistan-genislik); }
+
+.asistan-ust-dugme {
+  margin-left: auto;
+  background: transparent;
+  color: var(--taktik);
+  border: 1px solid var(--taktik-soluk);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+}
+.asistan-ust-dugme + .sistem-durumu { margin-left: 16px; }
+.asistan-ust-dugme[aria-expanded="true"] { background: rgba(34, 211, 238, 0.12); }
+
+.asistan-yuvarlak {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 30;
+  width: 54px;
+  height: 54px;
+  padding: 0;
+  border-radius: 50% !important;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 0 0 1px var(--taktik-soluk), 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 18px rgba(34, 211, 238, 0.25);
+  transition: opacity 0.2s ease, filter 0.15s;
+}
+.asistan-yuvarlak svg { width: 26px; height: 26px; }
+body.asistan-acik .asistan-yuvarlak { opacity: 0; pointer-events: none; }
+
+.asistan-paneli {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  width: min(var(--asistan-genislik), 100vw);
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, var(--kart-ust), var(--kart));
+  border-left: 1px solid var(--cizgi);
+  box-shadow: -12px 0 30px rgba(0, 0, 0, 0.45);
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform 0.2s ease, visibility 0s linear 0.2s;
+}
+.asistan-paneli.acik { transform: translateX(0); visibility: visible; transition: transform 0.2s ease; }
+
+.asistan-baslik {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--cizgi);
+}
+.asistan-baslik .ust-etiket { margin-bottom: 4px; }
+.asistan-baglam { font-family: var(--mono); font-size: 0.75rem; color: var(--soluk-yazi); letter-spacing: 0.06em; }
+.asistan-baslik-dugmeleri { margin-left: auto; display: flex; gap: 6px; }
+.asistan-baslik-dugmeleri button { padding: 4px 10px; font-size: 0.82rem; }
+
+.asistan-mesajlar {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.asistan-mesaj { max-width: 92%; padding: 8px 12px; border-radius: 8px; line-height: 1.45; font-size: 0.92rem; overflow-wrap: break-word; }
+.asistan-mesaj.asistan:has(.asistan-oneri) { max-width: 100%; }
+.asistan-mesaj.kullanici { align-self: flex-end; background: var(--giris-arka); border: 1px solid var(--cizgi); white-space: pre-wrap; }
+.asistan-mesaj.asistan { align-self: flex-start; background: rgba(13, 19, 30, 0.6); border-left: 2px solid var(--taktik-soluk); }
+.asistan-mesaj p { margin: 0 0 6px; }
+.asistan-mesaj p:last-child { margin-bottom: 0; }
+.asistan-mesaj ul, .asistan-mesaj ol { margin: 4px 0 6px; padding-left: 20px; }
+.asistan-mesaj code { font-family: var(--mono); font-size: 0.85em; background: var(--giris-arka); padding: 0 4px; border-radius: 4px; }
+.asistan-baslik-satiri { font-weight: 600; }
+.asistan-araclar { font-family: var(--mono); font-size: 0.72rem; color: var(--taktik); letter-spacing: 0.04em; }
+.asistan-araclar div::before { content: "› "; }
+.asistan-not { font-size: 0.75rem; color: var(--soluk-yazi); margin-top: 6px; font-family: var(--mono); }
+.asistan-mesaj.yaziyor .asistan-mesaj-govde::after { content: "▍"; color: var(--taktik); animation: led-yanip-son 1s step-end infinite; }
+
+.asistan-oneri {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--taktik-soluk);
+  border-radius: 8px;
+  background: var(--kart);
+  font-size: 0.85rem;
+}
+.asistan-oneri table { width: 100%; border-collapse: collapse; margin: 6px 0; }
+.asistan-oneri td, .asistan-oneri th { padding: 3px 4px; border-bottom: 1px solid var(--cizgi); text-align: left; font-weight: normal; overflow-wrap: normal; vertical-align: top; }
+.asistan-oneri th { color: var(--soluk-yazi); font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.06em; }
+.asistan-oneri td:not(:first-child) { font-family: var(--mono); font-size: 0.8rem; }
+.asistan-oneri .satir { margin-top: 8px; }
+.asistan-oneri button { padding: 5px 12px; font-size: 0.85rem; }
+
+.asistan-hazir-sorular { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 16px 0; }
+.asistan-hazir-sorular button {
+  background: transparent;
+  color: var(--soluk-yazi);
+  border: 1px solid var(--cizgi);
+  border-radius: 14px !important;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  text-align: left;
+}
+.asistan-hazir-sorular button:hover:not(:disabled) { color: var(--yazi); border-color: var(--taktik-soluk); }
+
+.asistan-paneli .kutu-uyari, .asistan-paneli .kutu-hata { margin: 8px 16px 0; font-size: 0.85rem; }
+.asistan-mesaj .kutu-hata { margin: 6px 0 0; }
+.asistan-paneli a { color: var(--vurgu-acik); }
+
+.asistan-formu { padding: 10px 16px 14px; border-top: 1px solid var(--cizgi); margin-top: 8px; }
+.asistan-formu textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: none;
+  min-height: 60px;
+  max-height: 160px;
+  padding: 8px;
+  font: inherit;
+  font-size: 0.92rem;
+  background: var(--giris-arka);
+  color: var(--yazi);
+  border: 1px solid var(--cizgi);
+  border-radius: 6px;
+}
+.asistan-formu .satir { justify-content: flex-end; margin-top: 8px; }
+.asistan-durum { margin-right: auto; font-family: var(--mono); font-size: 0.7rem; color: var(--soluk-yazi); }
+
+@media (prefers-reduced-motion: reduce) {
+  body, .asistan-paneli, .asistan-paneli.acik, .asistan-yuvarlak { transition: none; }
+  .asistan-mesaj.yaziyor .asistan-mesaj-govde::after { animation: none; }
+}
+
 .gizli { display: none !important; }

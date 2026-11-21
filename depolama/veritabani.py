@@ -162,9 +162,38 @@ CREATE TABLE IF NOT EXISTS drone_sartnamesi (
 );
 """
 
+# Sürüm 7: DroneLab Asistan sohbet geçmişi ve değişiklik önerileri. Sohbet drone'a bağlıdır
+# (drone silinince silinir); drone_kimlik NULL ise ana sayfa/ayarlar "genel sohbet"idir.
+# Öneri, kullanıcı "Uygula"ya basana kadar "bekliyor" durumunda kalır.
+SEMA_V7: Final[str] = """
+CREATE TABLE IF NOT EXISTS asistan_mesajlari (
+    kimlik        INTEGER PRIMARY KEY AUTOINCREMENT,
+    drone_kimlik  INTEGER REFERENCES dronelar(kimlik) ON DELETE CASCADE,
+    rol           TEXT    NOT NULL,
+    metin         TEXT    NOT NULL,
+    model         TEXT,
+    zaman         TEXT    NOT NULL
+);
+CREATE INDEX IF NOT EXISTS asistan_mesajlari_drone ON asistan_mesajlari (drone_kimlik, kimlik);
+
+CREATE TABLE IF NOT EXISTS asistan_onerileri (
+    kimlik              INTEGER PRIMARY KEY AUTOINCREMENT,
+    drone_kimlik        INTEGER NOT NULL REFERENCES dronelar(kimlik) ON DELETE CASCADE,
+    mesaj_kimlik        INTEGER REFERENCES asistan_mesajlari(kimlik) ON DELETE CASCADE,
+    gerekce             TEXT    NOT NULL,
+    degisiklikler_json  TEXT    NOT NULL,
+    sonuc_json          TEXT    NOT NULL,
+    durum               TEXT    NOT NULL,
+    zaman               TEXT    NOT NULL
+);
+CREATE INDEX IF NOT EXISTS asistan_onerileri_drone ON asistan_onerileri (drone_kimlik, kimlik);
+"""
+
 # Sürüm numarası -> o sürüme geçmek için çalıştırılacak SQL. Yeni sürüm eklenince
 # buraya bir satır eklenir; mevcut satırlar asla değiştirilmez.
-GOCLER: Final[dict[int, str]] = {1: SEMA_V1, 2: SEMA_V2, 3: SEMA_V3, 4: SEMA_V4, 5: SEMA_V5, 6: SEMA_V6}
+GOCLER: Final[dict[int, str]] = {
+    1: SEMA_V1, 2: SEMA_V2, 3: SEMA_V3, 4: SEMA_V4, 5: SEMA_V5, 6: SEMA_V6, 7: SEMA_V7,
+}
 SEMA_SURUMU: Final[int] = max(GOCLER)
 
 

@@ -18,7 +18,14 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from arastirma.ayar_servisi import YapayZekaAyarServisi
+from arayuz.asistan_rotalari import asistan_rotalarini_olustur
 from arayuz.ayar_rotalari import ayar_rotalarini_olustur
+from asistan.araclar import AsistanAraclari
+from asistan.baglam import BaglamToplayici
+from asistan.gecmis import SohbetGecmisi
+from asistan.oneriler import OneriDeposu, OneriUygulayici
+from asistan.senaryo import SenaryoHesaplayici
+from asistan.servis import AsistanServisi
 from arayuz.drone_rotalari import drone_rotalarini_olustur
 from arayuz.elektronik_rotalari import elektronik_rotalarini_olustur
 from arayuz.parametreler import Kimlik
@@ -112,8 +119,10 @@ def _hata_yakalayicilari_ekle(sunucu: FastAPI) -> None:
 
     @sunucu.exception_handler(RequestValidationError)
     def gecersiz_istek(_: Request, hata: RequestValidationError) -> JSONResponse:
-        # FastAPI'nin İngilizce doğrulama mesajları kullanıcıya gösterilmez; ayrıntı konsola yazılır.
-        gunluk.warning("Geçersiz istek: %s", hata.errors())
+        # FastAPI'nin İngilizce doğrulama mesajları kullanıcıya gösterilmez; ayrıntı günlüğe yazılır.
+        # Girilen değer ("input") yazılmaz: hatalı biçimli bir ayar isteğinde API anahtarı olabilir.
+        ozet = [{"alan": h.get("loc"), "tur": h.get("type"), "mesaj": h.get("msg")} for h in hata.errors()]
+        gunluk.warning("Geçersiz istek: %s", ozet)
         return JSONResponse(status_code=HTTPStatus.UNPROCESSABLE_ENTITY, content={"hata": GECERSIZ_ISTEK_MESAJI})
 
     @sunucu.exception_handler(Exception)
@@ -159,6 +168,27 @@ def _guvenlik_katmanlarini_ekle(sunucu: FastAPI, izinli_hostlar: tuple[str, ...]
     sunucu.add_middleware(GuvenlikBasliklari)
 
 
+def _asistan_servisi_olustur(
+    veritabani: Veritabani,
+    yapay_zeka: YapayZekaIstemcisi,
+    elektronik: ElektronikServisi,
+    sartname: SartnameServisi,
+    drone_servisi: DroneServisi,
+) -> AsistanServisi:
+    """DroneLab Asistan'ın parçalarını (geçmiş, öneriler, senaryo, araçlar, bağlam) birbirine bağlar."""
+    oneriler = OneriDeposu(veritabani)
+    senaryo = SenaryoHesaplayici(elektronik)
+    return AsistanServisi(
+        yapay_zeka=yapay_zeka,
+        gecmis=SohbetGecmisi(veritabani),
+        oneriler=oneriler,
+        uygulayici=OneriUygulayici(oneriler, senaryo, elektronik, drone_servisi),
+        araclar=AsistanAraclari(elektronik, sartname, senaryo, oneriler),
+        baglam=BaglamToplayici(elektronik, sartname, drone_servisi),
+        elektronik=elektronik,
+    )
+
+
 def sunucu_olustur(
     veri_klasoru: Path = VERI_KLASORU,
     saglayici_uretici: SaglayiciUretici = gemini_uret,
@@ -190,7 +220,8 @@ def sunucu_olustur(
     maliyet = MaliyetServisi(elektronik, veri_klasoru, kur_getirici, veritabani)
     yapay_zeka = YapayZekaIstemcisi(veri_klasoru, saglayici_uretici, veritabani)
     sartname = SartnameServisi(veri_klasoru, elektronik, maliyet, yapay_zeka, veritabani)
-    sunucu.include_router(drone_rotalarini_olustur(DroneServisi(veri_klasoru, veritabani)))
+    drone_servisi = DroneServisi(veri_klasoru, veritabani)
+    sunucu.include_router(drone_rotalarini_olustur(drone_servisi))
     sunucu.include_router(elektronik_rotalarini_olustur(elektronik))
     sunucu.include_router(oneri_rotalarini_olustur(OneriServisi(elektronik, yapay_zeka, sartname.oneri_maddeleri)))
     sunucu.include_router(
@@ -198,6 +229,9 @@ def sunucu_olustur(
     )
     sunucu.include_router(maliyet_rotalarini_olustur(maliyet))
     sunucu.include_router(sartname_rotalarini_olustur(sartname))
+    sunucu.include_router(
+        asistan_rotalarini_olustur(_asistan_servisi_olustur(veritabani, yapay_zeka, elektronik, sartname, drone_servisi))
+    )
     sunucu.mount(STATIK_ADRES_ONEKI, StaticFiles(directory=STATIK_KLASORU), name="statik")
 
     @sunucu.get("/", include_in_schema=False)

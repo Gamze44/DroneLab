@@ -52,9 +52,13 @@ class GunlukKullanimSayaci:
                     (bugun_iso(), gunluk_sinir),
                 ).fetchone()
         if satir is None:
-            raise YapayZekaHatasi(
-                f"Bugünkü öneri sınırına ({gunluk_sinir}) ulaşıldı. Yarın tekrar deneyin veya "
-                "Ayarlar sayfasından sınırı değiştirin.",
-                HTTPStatus.TOO_MANY_REQUESTS,
-            )
+            raise YapayZekaHatasi(self.sinir_mesaji(gunluk_sinir), HTTPStatus.TOO_MANY_REQUESTS)
         return int(satir["istek_sayisi"])
+
+    @staticmethod
+    def sinir_mesaji(gunluk_sinir: int) -> str:
+        """Günlük sınır dolduğunda kullanıcıya gösterilecek mesaj."""
+        return (
+            f"Bugünkü yapay zeka istek sınırına ({gunluk_sinir}) ulaşıldı. Yarın tekrar deneyin veya "
+            "Ayarlar sayfasından sınırı değiştirin."
+        )

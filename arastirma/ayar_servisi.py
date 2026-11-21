@@ -10,8 +10,7 @@ Güvenlik: anahtarın kendisi hiçbir dönüşte yer almaz; yalnızca var/yok ve
 from dataclasses import dataclass, field
 
 from arastirma.anahtar import AnahtarDeposu
-from arastirma.ayarlar import EN_BUYUK_GUNLUK_SINIR, YapayZekaAyarDeposu
-from arastirma.gemini import MODELLER
+from arastirma.ayarlar import EN_BUYUK_GUNLUK_SINIR, SECILEBILIR_MODELLER, YapayZekaAyarDeposu
 from arastirma.kullanim import GunlukKullanimSayaci
 
 
@@ -33,7 +32,7 @@ class YapayZekaAyarDurumu:
     model: str
     gunluk_sinir: int
     bugun_kullanilan: int
-    modeller: list[str] = field(default_factory=lambda: list(MODELLER))
+    modeller: list[str] = field(default_factory=lambda: list(SECILEBILIR_MODELLER))
     en_buyuk_gunluk_sinir: int = EN_BUYUK_GUNLUK_SINIR
 
 

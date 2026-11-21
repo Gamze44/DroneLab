@@ -2,14 +2,16 @@
 "use strict";
 
 const ANAHTAR_KAYNAK_ADLARI = { ortam_degiskeni: "ortam değişkeninden (GEMINI_API_KEY)", dosya: "veri/gemini_anahtari.txt dosyasından" };
+// Model listesindeki özel değerlerin ekranda görünen adı (diğerleri model adıyla görünür).
+const MODEL_ADLARI = { otomatik: "Otomatik (önerilen)" };
 
 function ayarlariCiz(a) {
   tabloDoldur("ayar-durumu", [
     ["API anahtarı", a.anahtar_var ? `var – ${ANAHTAR_KAYNAK_ADLARI[a.anahtar_kaynagi] || ""}` : "yok (öneri kapalı, elle giriş açık)"],
-    ["Bugünkü öneri sayısı", `${a.bugun_kullanilan} / ${a.gunluk_sinir}`],
+    ["Bugünkü yapay zeka isteği", `${a.bugun_kullanilan} / ${a.gunluk_sinir}`],
   ]);
   const secici = $("ay-model");
-  secici.replaceChildren(...a.modeller.map((m) => new Option(m, m)));
+  secici.replaceChildren(...a.modeller.map((m) => new Option(MODEL_ADLARI[m] || m, m)));
   secici.value = a.model;
   $("ay-sinir").max = a.en_buyuk_gunluk_sinir;
   $("ay-sinir").value = a.gunluk_sinir;

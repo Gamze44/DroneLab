@@ -211,6 +211,10 @@ class SartnameServisi:
         maddeler = self._depo.maddeler(sartname.kimlik)
         return DroneSartnameRaporu(sartname, self._kontrol.kontrol_et(maddeler, self._baglam(drone_kimlik, maddeler)))
 
+    def drone_sartnamesi(self, drone_kimlik: int) -> Sartname | None:
+        """Drone'a bağlı şartname (uyum raporu hesaplanmadan, hafif sorgu); yoksa None."""
+        return self._depo.drone_sartnamesi(drone_kimlik)
+
     def oneri_maddeleri(self, drone_kimlik: int) -> list[Madde]:
         """Öneride kullanılacak maddeler: drone'un şartnamesindeki onaylı kesin kurallar."""
         sartname = self._depo.drone_sartnamesi(drone_kimlik)

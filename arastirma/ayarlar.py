@@ -10,14 +10,18 @@ import json
 from pathlib import Path
 from typing import Final
 
-from arastirma.gemini import MODELLER, VARSAYILAN_MODEL
+from arastirma.gemini import MODELLER
+from arastirma.model_secici import OTOMATIK_MODEL
 from cekirdek.ayarlar import YEREL_AYAR_DOSYA_ADI
 from cekirdek.hatalar import GecersizDegerHatasi
 
 AYAR_BASLIGI: Final[str] = "yapay_zeka"
+# Ayarlarda seçilebilen değerler: otomatik seçim (önerilen, varsayılan) veya belirli bir model.
+SECILEBILIR_MODELLER: Final[tuple[str, ...]] = (OTOMATIK_MODEL, *MODELLER)
 
-# DEĞİŞTİRİLEBİLİR: Günde en çok kaç öneri isteği yapılabilir. Ücretsiz kotayı (ve olası
-# ücretleri) aşmamak için bir güvenlik sınırıdır; her "Öner" tıklaması 1 istektir.
+# DEĞİŞTİRİLEBİLİR: Günde en çok kaç yapay zeka isteği yapılabilir. Ücretsiz kotayı (ve olası
+# ücretleri) aşmamak için bir güvenlik sınırıdır. Her "Öner" tıklaması 1 istektir; asistanda
+# bir soru, araç kullanımına göre 1–5 istek tutabilir.
 VARSAYILAN_GUNLUK_SINIR: Final[int] = 20
 EN_BUYUK_GUNLUK_SINIR: Final[int] = 200
 
@@ -26,17 +30,17 @@ EN_BUYUK_GUNLUK_SINIR: Final[int] = 200
 class YapayZekaAyarlari:
     """
     Alanlar:
-        model: Kullanılacak Gemini modeli.
+        model: Kullanılacak Gemini modeli veya OTOMATIK_MODEL (program kota/yoğunluğa göre seçer).
         gunluk_sinir: Günlük en çok istek sayısı.
     """
 
-    model: str = VARSAYILAN_MODEL
+    model: str = OTOMATIK_MODEL
     gunluk_sinir: int = VARSAYILAN_GUNLUK_SINIR
 
     def denetle(self) -> None:
         """Hatalar: GecersizDegerHatasi."""
-        if self.model not in MODELLER:
-            raise GecersizDegerHatasi(f"Model tanınmıyor: {self.model}. Seçenekler: {', '.join(MODELLER)}.")
+        if self.model not in SECILEBILIR_MODELLER:
+            raise GecersizDegerHatasi(f"Model tanınmıyor: {self.model}. Seçenekler: {', '.join(SECILEBILIR_MODELLER)}.")
         if isinstance(self.gunluk_sinir, bool) or not isinstance(self.gunluk_sinir, int) or not (
             1 <= self.gunluk_sinir <= EN_BUYUK_GUNLUK_SINIR
         ):

@@ -20,17 +20,17 @@ from drone.hedefler import DroneHedefleri
 from drone.modeller import Drone
 from elektronik.parcalar.cekirdek_parcalar import ItkiNoktasi, Motor, Pervane
 from elektronik.drone_parca_deposu import DroneParcaDeposu
-from elektronik.hesap.agirlik import AgirlikHesaplayici, AgirlikOzeti
+from elektronik.hesap.agirlik import AgirlikOzeti
 from elektronik.hesap.sasi_pervane import EnBuyukPervaneTahmincisi, SasiGorunumu
-from elektronik.hesap.ucus import UcusHesaplayici, UcusOzeti
+from elektronik.hesap.tasarim import TasarimHesaplayici
+from elektronik.hesap.ucus import UcusOzeti
 from elektronik.hesap.uyum import UyumSonucu
-from elektronik.hesap.uyumluluk import UyumlulukKontrolcusu
 from elektronik.katalog import ParcaKatalogu
 from elektronik.parcalar.drone_parcasi import DroneParcasi
 from elektronik.parcalar.parca import Parca
 from elektronik.parcalar.serilestirme import ParcaSerilestirici
 from elektronik.parcalar.turler import ALT_TUR_GEREKLI_MESAJI, DigerAltTur, ParcaDurumu, ParcaTuru
-from elektronik.zorunlu_parcalar import Zorunluluk, ZorunluParcaDenetleyici
+from elektronik.zorunlu_parcalar import Zorunluluk
 from sasi.modeller import SasiOlculeri
 
 # İtki tablosu satırında kabul edilen alanlar (bilinmeyen alanlar yok sayılır).
@@ -87,10 +87,7 @@ class ElektronikServisi:
         self._serilestirici = ParcaSerilestirici()
         self._sasiler = SasiKayitDeposu(veritabani)
         self._hedefler = HedefDeposu(veritabani)
-        self._zorunlu = ZorunluParcaDenetleyici()
-        self._agirlik = AgirlikHesaplayici()
-        self._uyum = UyumlulukKontrolcusu()
-        self._ucus = UcusHesaplayici()
+        self._tasarim = TasarimHesaplayici()
         self._pervane_tahmincisi = EnBuyukPervaneTahmincisi()
 
     # ---------- Okuma ----------
@@ -109,16 +106,14 @@ class ElektronikServisi:
         sasi = self._sasiler.getir(drone_kimlik)
         sasi_olculeri = sasi.olculer if sasi else None
         hedefler = self._hedefler.getir(drone_kimlik)
-        agirlik = self._agirlik.hesapla(drone.sasi_agirlik_g, parca_adetleri, yuk_g=hedefler.yuk_g or 0.0)
+        sonuc = self._tasarim.hesapla(drone, parca_adetleri, sasi_olculeri, hedefler)
         return ElektronikOzeti(
             drone=drone,
             kalemler=kalemler,
-            zorunluluklar=self._zorunlu.denetle(parca_adetleri, drone.motor_sayisi, drone.amac),
-            agirlik=agirlik,
-            uyum=self._uyum.kontrol_et(parca_adetleri, drone.motor_sayisi, sasi_olculeri),
-            ucus=self._ucus.hesapla(
-                parca_adetleri, drone.motor_sayisi, drone.amac, agirlik, hedef_ucus_suresi_dk=hedefler.ucus_suresi_dk
-            ),
+            zorunluluklar=sonuc.zorunluluklar,
+            agirlik=sonuc.agirlik,
+            uyum=sonuc.uyum,
+            ucus=sonuc.ucus,
             sasi_olculeri=sasi_olculeri,
             hedefler=hedefler,
             sasi_gorunumu=self._sasi_gorunumu(sasi_olculeri, drone.motor_sayisi, parca_adetleri),
