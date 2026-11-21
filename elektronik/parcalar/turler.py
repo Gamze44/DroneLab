@@ -63,6 +63,8 @@ PARCA_TURU_ADLARI: Final[dict[ParcaTuru, str]] = {
     ParcaTuru.DIGER: "Diğer",
 }
 
+ALT_TUR_GEREKLI_MESAJI: Final[str] = "Diğer parçalar için alt tür (kamera, VTX, GPS…) seçilmeli."
+
 DIGER_ALT_TUR_ADLARI: Final[dict[DigerAltTur, str]] = {
     DigerAltTur.KAMERA: "Kamera",
     DigerAltTur.VTX: "Video verici (VTX)",

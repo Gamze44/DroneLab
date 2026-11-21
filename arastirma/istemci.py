@@ -6,6 +6,7 @@ kullanır; böylece sınır ve anahtar kuralları tek yerde durur.
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from http import HTTPStatus
 from pathlib import Path
 from typing import Any, Final
 
@@ -18,7 +19,6 @@ from cekirdek.ayarlar import VERITABANI_DOSYA_ADI
 from cekirdek.hatalar import YapayZekaHatasi
 from depolama.veritabani import Veritabani
 
-HTTP_YETKISIZ: Final[int] = 401
 ANAHTAR_YOK_MESAJI: Final[str] = (
     "Gemini API anahtarı bulunamadı. Ana sayfadaki Ayarlar bölümünden anahtar girin; "
     "o zamana kadar bilgileri elle girebilirsiniz."
@@ -75,7 +75,7 @@ class YapayZekaIstemcisi:
         """
         anahtar = self.anahtar.oku()
         if not anahtar:
-            raise YapayZekaHatasi(ANAHTAR_YOK_MESAJI, HTTP_YETKISIZ)
+            raise YapayZekaHatasi(ANAHTAR_YOK_MESAJI, HTTPStatus.UNAUTHORIZED)
         ayarlar = self.ayarlar.oku()
         kullanilan = self.sayac.harca(ayarlar.gunluk_sinir)
         veri = self._uretici(anahtar, ayarlar.model).json_uret(sistem_talimati, istem, sema)

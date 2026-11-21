@@ -6,15 +6,17 @@
 // DEĞİŞTİRİLEBİLİR: Katalog önerileri için yazmayı bitirdikten sonra bekleme (ms) ve gösterilecek öneri sayısı.
 const ONERI_BEKLEME_MS = 300;
 const EN_FAZLA_ONERI = 5;
+// DEĞİŞTİRİLEBİLİR: Ekranda gösterilen ondalık basamak sayıları (öneri paneli ve görseller de kullanır).
 const AGIRLIK_BASAMAK = 1;
 const ORAN_BASAMAK = 1;
 const AKIM_BASAMAK = 1;
 const SURE_BASAMAK = 1;
+const ITKI_BASAMAK = 0;
+const YUZDE_BASAMAK = 0;
 
 const ZORUNLU_ISARETLERI = { tamam: "✓", eksik: "✗", bilinmiyor: "?", istege_bagli: "–", onerilen: "!" };
 const UYUM_ISARETLERI = { uygunsuz: "✗", uyari: "⚠", bilinmiyor: "?", uygun: "✓" };
 const UYUM_ADLARI = { uygunsuz: "uyumsuz", uyari: "dikkat", bilinmiyor: "doğrulanamıyor", uygun: "uygun" };
-const UYUM_SIRASI = ["uygunsuz", "uyari", "bilinmiyor", "uygun"];
 
 let turTanimlari = null;   // /api/parca-turleri yanıtı
 let elektronikOzeti = null; // /api/dronelar/{k}/elektronik yanıtı
@@ -40,13 +42,6 @@ async function elektronikOzetiniYenile() {
   } catch (veri) {
     hataGoster("elektronik-hatasi", veri);
   }
-}
-
-function seceneklereYaz(kimlik, secenekler, bosMetin = null) {
-  const secici = $(kimlik);
-  secici.replaceChildren();
-  if (bosMetin !== null) secici.append(new Option(bosMetin, ""));
-  for (const { deger, ad } of secenekler) secici.append(new Option(ad, deger));
 }
 
 function turTanimi(tur) {
@@ -92,13 +87,6 @@ function ozetiCiz() {
 
 // ---------- Uçuş hesabı ----------
 
-// Bir hesap değerini "1.234,5 g (tahmini)" ya da "hesaplanamadı – neden" biçiminde yazar.
-function hesapMetni(h, birim, basamak) {
-  if (h.deger == null) return `hesaplanamadı – ${h.aciklama}`;
-  const etiket = h.tahmini ? " (tahmini)" : "";
-  return `${sayiBicimle(h.deger, basamak)}${birim}${etiket}`;
-}
-
 function ucusHesabiniCiz() {
   const u = elektronikOzeti.ucus;
   const oran = u.itki_agirlik_orani;
@@ -110,9 +98,9 @@ function ucusHesabiniCiz() {
   }
   const satirlar = [
     ["Toplam ağırlık", hesapMetni(u.toplam_agirlik_g, " g", AGIRLIK_BASAMAK)],
-    ["Toplam en büyük itki", hesapMetni(u.toplam_itki_g, " g", 0)],
+    ["Toplam en büyük itki", hesapMetni(u.toplam_itki_g, " g", ITKI_BASAMAK)],
     ["İtki / ağırlık", oranMetni],
-    ["Asılı kalma gazı", hesapMetni(u.asili_gaz_yuzde, " %", 0)],
+    ["Asılı kalma gazı", hesapMetni(u.asili_gaz_yuzde, " %", YUZDE_BASAMAK)],
     ["Asılı kalma akımı (toplam)", hesapMetni(u.asili_akim_a, " A", AKIM_BASAMAK)],
     ["Tam gaz akımı (toplam)", hesapMetni(u.toplam_maks_akim_a, " A", AKIM_BASAMAK)],
     ["Uçuş süresi", ucusSuresiMetni(u)],
@@ -162,7 +150,7 @@ function uyumListesiniCiz() {
   const liste = $("uyum-listesi");
   liste.replaceChildren();
   // Sorunlu olanlar üstte: uyumsuz, dikkat, bilinmiyor, uygun.
-  const sirali = [...sonuclar].sort((a, b) => UYUM_SIRASI.indexOf(a.durum) - UYUM_SIRASI.indexOf(b.durum));
+  const sirali = [...sonuclar].sort((a, b) => UYUM_DURUM_SIRASI.indexOf(a.durum) - UYUM_DURUM_SIRASI.indexOf(b.durum));
   for (const s of sirali) {
     const satir = document.createElement("div");
     satir.className = `uyum-satiri uyum-${s.durum}`;
@@ -412,7 +400,7 @@ function teknikDegerleriTopla() {
       teknik[ad] = ham.split(/[,;]/).map((s) => s.trim()).filter(Boolean);
     } else if (cins === "sayi_listesi") {
       // Ondalık için virgül de kabul edilir (5,5); öğeler noktalı virgül veya boşlukla ayrılır.
-      teknik[ad] = ham.split(/[;\s]+/).filter(Boolean).map((s) => Number(s.replace(",", ".")));
+      teknik[ad] = ham.split(/[;\s]+/).filter(Boolean).map((s) => sayiOku(s));
       if (teknik[ad].some(Number.isNaN)) throw { hata: `${girdi.previousSibling.textContent}: sayıları "5; 9" biçiminde yazın.` };
     } else {
       teknik[ad] = ham;

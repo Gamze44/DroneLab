@@ -20,9 +20,9 @@ from cekirdek.ayarlar import (
     EN_FAZLA_ARSIV_UYESI,
     ORAN_DENETIM_ESIGI_MB,
 )
+from cekirdek.birimler import BAYT_BIR_MB
 from cekirdek.hatalar import DosyaOkumaHatasi
 
-BAYT_BIR_MB: Final[int] = 1024 * 1024
 BOZUK_ARSIV_MESAJI: Final[str] = (
     "Dosya açılamadı; bozuk veya beklenen biçimde değil. Dosyayı programında yeniden kaydedip tekrar deneyin."
 )

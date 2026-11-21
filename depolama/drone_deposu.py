@@ -2,10 +2,10 @@
 Drone kayıtlarının veritabanında oluşturulması, okunması, güncellenmesi ve silinmesi.
 """
 
-from datetime import datetime
 import sqlite3
 
 from cekirdek.hatalar import KayitBulunamadiHatasi
+from cekirdek.zaman import simdi_iso
 from depolama.veritabani import Veritabani
 from drone.modeller import BaslangicTuru, Drone, DroneTuru
 
@@ -13,11 +13,6 @@ DRONE_SORGUSU = """
 SELECT d.*, EXISTS(SELECT 1 FROM sasiler s WHERE s.drone_kimlik = d.kimlik) AS sasi_var
 FROM dronelar d
 """
-
-
-def _simdi() -> str:
-    """Şu anki yerel zamanı saniye hassasiyetinde ISO metni olarak döndürür."""
-    return datetime.now().isoformat(timespec="seconds")
 
 
 class DroneDeposu:
@@ -58,7 +53,7 @@ class DroneDeposu:
         Dönüş:
             Oluşturulan Drone.
         """
-        zaman = _simdi()
+        zaman = simdi_iso()
         with self._vt.baglanti() as bag:
             imlec = bag.execute(
                 "INSERT INTO dronelar (ad, baslangic_turu, drone_turu, amac, olusturma_zamani, guncelleme_zamani) "
@@ -117,7 +112,7 @@ class DroneDeposu:
         with self._vt.baglanti() as bag:
             bag.execute(
                 "UPDATE dronelar SET sasi_agirlik_g = ?, guncelleme_zamani = ? WHERE kimlik = ?",
-                (agirlik_g, _simdi(), kimlik),
+                (agirlik_g, simdi_iso(), kimlik),
             )
         return self.getir(kimlik)
 
@@ -129,4 +124,4 @@ class DroneDeposu:
         listesinde doğru sırada görünmesi için çağrılır.
         """
         with self._vt.baglanti() as bag:
-            bag.execute("UPDATE dronelar SET guncelleme_zamani = ? WHERE kimlik = ?", (_simdi(), kimlik))
+            bag.execute("UPDATE dronelar SET guncelleme_zamani = ? WHERE kimlik = ?", (simdi_iso(), kimlik))

@@ -54,6 +54,8 @@ DWM_BASLIK_YAZI_RENGI: Final[int] = 36  # DWMWA_TEXT_COLOR
 GUNLUK_EN_BUYUK_BAYT: Final[int] = 1_000_000
 GUNLUK_YEDEK_SAYISI: Final[int] = 2
 BEKLEME_ADIMI_SN: Final[float] = 0.05
+# Pencere kapanınca sunucunun bitmesi için en çok bekleme; dolarsa program yine kapanır (iş parçacığı daemon).
+SUNUCU_KAPANMA_BEKLEME_SN: Final[float] = 5.0
 
 gunluk = logging.getLogger(PROGRAM_DOSYA_ADI)
 
@@ -143,7 +145,7 @@ class YerelSunucu:
     def durdur(self) -> None:
         """Sunucuya kapanmasını söyler ve bitmesini kısa süre bekler."""
         self._sunucu.should_exit = True
-        self._is_parcacigi.join(timeout=5)
+        self._is_parcacigi.join(timeout=SUNUCU_KAPANMA_BEKLEME_SN)
 
 
 def renk_kodu(onaltilik: str) -> int:

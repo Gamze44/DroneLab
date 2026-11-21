@@ -7,33 +7,18 @@ doldurulmaz. Tahmini hesaplar ayrı yapılır ve "tahmini" diye gösterilir.
 """
 
 from dataclasses import dataclass, fields
-import re
 from typing import Any, ClassVar, Final
-import unicodedata
 
+# metni_sadelestir buradan da dışa verilir (eski içe aktarmalar bozulmasın diye).
+from cekirdek.metin import metni_sadelestir
 from elektronik.parcalar.denetim import AlanCinsi, DegerDenetleyici
 from elektronik.parcalar.turler import ParcaTuru
 
-# Arama anahtarında harf ve rakam dışındaki her şey atılır; böylece
+# Arama anahtarında harf ve rakam dışındaki her şey atılır (bkz. cekirdek/metin.py); böylece
 # "T-Motor F60 Pro V" ile "tmotor f60pro v" aynı parça sayılır.
-ALFANUMERIK_OLMAYAN: Final[re.Pattern[str]] = re.compile(r"[^a-z0-9]")
 ANAHTAR_AYRACI: Final[str] = ":"
 
-
-def metni_sadelestir(metin: str) -> str:
-    """
-    Metni karşılaştırma için sadeleştirir: aksanlar/Türkçe harfler sadeleşir,
-    küçük harfe çevrilir, harf ve rakam dışındakiler atılır.
-
-    Parametreler:
-        metin: ör. "T-Motor F60 Pro V İnce"
-    Dönüş:
-        ör. "tmotorf60province"
-    """
-    # NFKD, "ç" gibi harfleri "c" + işaret olarak ayırır; işaretler sonra atılır.
-    ayrik = unicodedata.normalize("NFKD", metin.replace("ı", "i").replace("İ", "I"))
-    sade = "".join(h for h in ayrik if not unicodedata.combining(h)).lower()
-    return ALFANUMERIK_OLMAYAN.sub("", sade)
+__all__ = ["ANAHTAR_AYRACI", "Parca", "metni_sadelestir"]
 
 
 @dataclass(kw_only=True)

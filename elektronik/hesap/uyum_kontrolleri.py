@@ -8,11 +8,13 @@ Eşikler elektronik/hesap/katsayilar.py dosyasındadır.
 
 from typing import Final
 
+from cekirdek.bicim import sayi_yaz
+from cekirdek.birimler import BirimDonusturucu
+from cekirdek.metin import metni_sadelestir as sade
 from elektronik.hesap.akim import EnBuyukAkimHesaplayici
 from elektronik.hesap.katsayilar import (
     ESC_AKIM_PAYI,
     GERILIM_TOLERANSI_V,
-    MAH_AH,
     MONTAJ_TOLERANSI_MM,
     PERVANE_SINIR_YAKINLIGI_INC,
     PIL_AKIM_PAYI,
@@ -28,8 +30,6 @@ from elektronik.hesap.uyum import (
     UyumKontrolu,
     aralik_durumu,
     eksik_mesaji,
-    metni_karsilastirmaya_hazirla as sade,
-    sayi_yaz,
 )
 from elektronik.parcalar.cekirdek_parcalar import Alici, Esc, GucDagitim, Motor, Pervane, Pil, UcusKarti
 from elektronik.parcalar.diger_parca import DigerParca
@@ -331,7 +331,7 @@ class PilAkimKontrolu(UyumKontrolu):
             if eksik:
                 sonuclar.append(AraSonuc(D.BILINMIYOR, eksik, ilgili))
                 continue
-            pil_akimi = pil.kapasite_mah / MAH_AH * pil.desarj_c
+            pil_akimi = BirimDonusturucu.mah_i_ah_a_cevir(pil.kapasite_mah) * pil.desarj_c
             sonuclar.append(_akim_karsilastir(pil_akimi, toplam.toplam_a, self.pay, "Pil sürekli akımı", ilgili))
         return sonuclar
 

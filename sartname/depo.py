@@ -45,10 +45,7 @@ class SartnameDeposu:
     # ---------- Şartnameler ----------
 
     def ekle(self, ad: str, dosya_adi: str, saklanan_dosya: str, metin: str) -> Sartname:
-        """Yeni şartnameyi kaydeder."""
-        ad = ad.strip()
-        if not ad:
-            raise GecersizDegerHatasi("Şartnameye bir ad verin (ör. yarışmanın adı ve yılı).")
+        """Yeni şartnameyi kaydeder (ad SartnameServisi'nde sartname_adini_dogrula ile denetlenmiş olmalı)."""
         with self._vt.baglanti() as bag:
             imlec = bag.execute(
                 "INSERT INTO sartnameler (ad, dosya_adi, saklanan_dosya, metin, yuklenme_zamani) VALUES (?, ?, ?, ?, ?)",

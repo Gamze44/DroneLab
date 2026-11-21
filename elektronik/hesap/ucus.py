@@ -11,15 +11,15 @@ Uçuş süresi her zaman tahminidir (uçuş tarzına bağlıdır).
 import math
 from dataclasses import dataclass, field
 
+from cekirdek.bicim import sayi_yaz
+from cekirdek.birimler import BirimDonusturucu
 from elektronik.hesap.agirlik import AgirlikOzeti
 from elektronik.hesap.akim import EnBuyukAkimHesaplayici
 from elektronik.hesap.itki_tablosu import ItkiTablosuOkuyucu
 from elektronik.hesap.katsayilar import (
     HEDEF_ITKI_AGIRLIK,
     KULLANILABILIR_PIL_ORANI,
-    MAH_AH,
     NOMINAL_HUCRE_GERILIMI_V,
-    SANIYE_DAKIKA,
     UCUS_TARZI_KATSAYILARI,
     VARSAYILAN_HEDEF_ITKI_AGIRLIK,
     VARSAYILAN_NOMINAL_HUCRE_GERILIMI_V,
@@ -27,7 +27,6 @@ from elektronik.hesap.katsayilar import (
     YUZDE,
 )
 from elektronik.hesap.tahmini_itki import TahminiItkiHesaplayici
-from elektronik.hesap.uyum import sayi_yaz
 from elektronik.parcalar.cekirdek_parcalar import Motor, Pervane, Pil
 from elektronik.parcalar.parca import Parca
 from elektronik.parcalar.turler import alan_etiketi
@@ -268,7 +267,8 @@ class UcusHesaplayici:
         if asili_akim.deger is None:
             return HesapDegeri(None, True, asili_akim.aciklama)
         katsayi = UCUS_TARZI_KATSAYILARI.get(amac, VARSAYILAN_UCUS_TARZI_KATSAYISI)
-        sure = pil.kapasite_mah / MAH_AH * KULLANILABILIR_PIL_ORANI / (asili_akim.deger * katsayi) * SANIYE_DAKIKA
+        kullanilabilir_ah = BirimDonusturucu.mah_i_ah_a_cevir(pil.kapasite_mah) * KULLANILABILIR_PIL_ORANI
+        sure = BirimDonusturucu.saati_dakikaya_cevir(kullanilabilir_ah / (asili_akim.deger * katsayi))
         return HesapDegeri(
             sure, True,
             f"kapasitenin %{sayi_yaz(KULLANILABILIR_PIL_ORANI * YUZDE)}'i, ortalama akım = asılı akım × {sayi_yaz(katsayi)} (uçuş tarzı)",

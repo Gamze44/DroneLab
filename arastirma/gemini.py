@@ -11,6 +11,7 @@ loga veya yanıta yazılmaz. İstekler store=false ile gönderilir.
 """
 
 from collections.abc import Callable
+from http import HTTPStatus
 import json
 import ssl
 from typing import Any, Final
@@ -33,14 +34,6 @@ VARSAYILAN_MODEL: Final[str] = MODELLER[0]
 # DEĞİŞTİRİLEBİLİR: Yanıt için en çok bekleme süresi, saniye.
 ZAMAN_ASIMI_SN: Final[float] = 90.0
 
-HTTP_YETKISIZ: Final[int] = 401
-HTTP_YASAK: Final[int] = 403
-HTTP_BULUNAMADI: Final[int] = 404
-HTTP_COK_ISTEK: Final[int] = 429
-HTTP_SUNUCU_HATASI_ALT: Final[int] = 500
-HTTP_HATALI_ISTEK: Final[int] = 400
-HTTP_AG_GECIDI: Final[int] = 502
-HTTP_HIZMET_YOK: Final[int] = 503
 AYRINTI_SINIRI: Final[int] = 200
 
 
@@ -58,20 +51,20 @@ def hata_ayrintisi(govde: str) -> str:
 
 def hata_cevir(kod: int, ayrinti: str = "") -> YapayZekaHatasi:
     """HTTP hata kodunu kullanıcının anlayacağı Türkçe hataya çevirir."""
-    if kod == HTTP_HATALI_ISTEK and "key" in ayrinti.lower():
-        return YapayZekaHatasi("Gemini API anahtarı geçersiz. Ayarlar sayfasından yeni anahtar girin.", HTTP_YETKISIZ)
-    if kod in (HTTP_YETKISIZ, HTTP_YASAK):
-        return YapayZekaHatasi("Gemini API anahtarı geçersiz ya da bu modele erişim izni yok.", HTTP_YETKISIZ)
-    if kod == HTTP_BULUNAMADI:
-        return YapayZekaHatasi("Gemini modeli bulunamadı. Ayarlar sayfasından başka bir model seçin.", HTTP_BULUNAMADI)
-    if kod == HTTP_COK_ISTEK:
+    if kod == HTTPStatus.BAD_REQUEST and "key" in ayrinti.lower():
+        return YapayZekaHatasi("Gemini API anahtarı geçersiz. Ayarlar sayfasından yeni anahtar girin.", HTTPStatus.UNAUTHORIZED)
+    if kod in (HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN):
+        return YapayZekaHatasi("Gemini API anahtarı geçersiz ya da bu modele erişim izni yok.", HTTPStatus.UNAUTHORIZED)
+    if kod == HTTPStatus.NOT_FOUND:
+        return YapayZekaHatasi("Gemini modeli bulunamadı. Ayarlar sayfasından başka bir model seçin.", HTTPStatus.NOT_FOUND)
+    if kod == HTTPStatus.TOO_MANY_REQUESTS:
         return YapayZekaHatasi(
             "Gemini'nin ücretsiz kullanım sınırına ulaşıldı. Biraz bekleyip (gerekirse yarın) tekrar deneyin.",
-            HTTP_COK_ISTEK,
+            HTTPStatus.TOO_MANY_REQUESTS,
         )
-    if kod >= HTTP_SUNUCU_HATASI_ALT:
-        return YapayZekaHatasi("Gemini şu an yanıt veremiyor. Biraz sonra tekrar deneyin.", HTTP_AG_GECIDI)
-    return YapayZekaHatasi(f"Gemini isteği reddetti: {ayrinti[:AYRINTI_SINIRI] or kod}", HTTP_HATALI_ISTEK)
+    if kod >= HTTPStatus.INTERNAL_SERVER_ERROR:
+        return YapayZekaHatasi("Gemini şu an yanıt veremiyor. Biraz sonra tekrar deneyin.", HTTPStatus.BAD_GATEWAY)
+    return YapayZekaHatasi(f"Gemini isteği reddetti: {ayrinti[:AYRINTI_SINIRI] or kod}", HTTPStatus.BAD_REQUEST)
 
 
 class GeminiSaglayicisi(ArastirmaSaglayicisi):
@@ -93,7 +86,7 @@ class GeminiSaglayicisi(ArastirmaSaglayicisi):
         zaman_asimi: float = ZAMAN_ASIMI_SN,
     ) -> None:
         if model not in MODELLER:
-            raise YapayZekaHatasi(f"Bilinmeyen Gemini modeli: {model}", HTTP_HATALI_ISTEK)
+            raise YapayZekaHatasi(f"Bilinmeyen Gemini modeli: {model}", HTTPStatus.BAD_REQUEST)
         self._anahtar = anahtar
         self.model = model
         self._zaman_asimi = zaman_asimi
@@ -123,9 +116,9 @@ class GeminiSaglayicisi(ArastirmaSaglayicisi):
                 ayrinti = ""
             raise hata_cevir(hata.code, ayrinti) from None
         except (urllib.error.URLError, TimeoutError, OSError):
-            raise YapayZekaHatasi("Gemini'ye ulaşılamadı. İnternet bağlantınızı kontrol edin.", HTTP_HIZMET_YOK) from None
+            raise YapayZekaHatasi("Gemini'ye ulaşılamadı. İnternet bağlantınızı kontrol edin.", HTTPStatus.SERVICE_UNAVAILABLE) from None
         except ValueError:
-            raise YapayZekaHatasi("Gemini'den anlaşılamayan bir yanıt geldi. Tekrar deneyin.", HTTP_AG_GECIDI) from None
+            raise YapayZekaHatasi("Gemini'den anlaşılamayan bir yanıt geldi. Tekrar deneyin.", HTTPStatus.BAD_GATEWAY) from None
 
     @staticmethod
     def _metin(adimlar: list[dict[str, Any]]) -> str:
@@ -151,14 +144,14 @@ class GeminiSaglayicisi(ArastirmaSaglayicisi):
         if yanit.get("status") in ("failed", "cancelled"):
             hatalar = yanit.get("errors") or [{}]
             mesaj = str(hatalar[0].get("message", "")) if isinstance(hatalar[0], dict) else ""
-            raise YapayZekaHatasi(f"Gemini isteği tamamlayamadı. {mesaj}"[:AYRINTI_SINIRI], HTTP_AG_GECIDI)
+            raise YapayZekaHatasi(f"Gemini isteği tamamlayamadı. {mesaj}"[:AYRINTI_SINIRI], HTTPStatus.BAD_GATEWAY)
         metin = self._metin(yanit.get("steps") or [])
         if not metin:
-            raise YapayZekaHatasi("Gemini boş yanıt döndürdü (istek reddedilmiş olabilir). Tekrar deneyin.", HTTP_AG_GECIDI)
+            raise YapayZekaHatasi("Gemini boş yanıt döndürdü (istek reddedilmiş olabilir). Tekrar deneyin.", HTTPStatus.BAD_GATEWAY)
         try:
             veri = json.loads(metin)
         except ValueError:
-            raise YapayZekaHatasi("Gemini geçerli JSON döndürmedi. Tekrar deneyin.", HTTP_AG_GECIDI) from None
+            raise YapayZekaHatasi("Gemini geçerli JSON döndürmedi. Tekrar deneyin.", HTTPStatus.BAD_GATEWAY) from None
         if not isinstance(veri, dict):
-            raise YapayZekaHatasi("Gemini beklenmeyen biçimde yanıt verdi. Tekrar deneyin.", HTTP_AG_GECIDI)
+            raise YapayZekaHatasi("Gemini beklenmeyen biçimde yanıt verdi. Tekrar deneyin.", HTTPStatus.BAD_GATEWAY)
         return veri

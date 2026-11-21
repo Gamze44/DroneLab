@@ -5,12 +5,11 @@ Yapay zeka isteklerinin günlük sayımı ve sınırı.
 düşmüş olabileceği için güvenli taraf seçilir.
 """
 
-from datetime import date
+from http import HTTPStatus
 
 from cekirdek.hatalar import YapayZekaHatasi
+from cekirdek.zaman import bugun_iso
 from depolama.veritabani import Veritabani
-
-HTTP_COK_ISTEK: int = 429
 
 
 class GunlukKullanimSayaci:
@@ -24,14 +23,10 @@ class GunlukKullanimSayaci:
     def __init__(self, veritabani: Veritabani) -> None:
         self._vt = veritabani
 
-    @staticmethod
-    def _bugun() -> str:
-        return date.today().isoformat()
-
     def bugun(self) -> int:
         """Bugün yapılan istek sayısı."""
         with self._vt.baglanti() as bag:
-            satir = bag.execute("SELECT istek_sayisi FROM yapay_zeka_kullanimi WHERE gun = ?", (self._bugun(),)).fetchone()
+            satir = bag.execute("SELECT istek_sayisi FROM yapay_zeka_kullanimi WHERE gun = ?", (bugun_iso(),)).fetchone()
         return satir["istek_sayisi"] if satir else 0
 
     def harca(self, gunluk_sinir: int) -> int:
@@ -54,12 +49,12 @@ class GunlukKullanimSayaci:
                     "INSERT INTO yapay_zeka_kullanimi (gun, istek_sayisi) VALUES (?, 1) "
                     "ON CONFLICT(gun) DO UPDATE SET istek_sayisi = istek_sayisi + 1 WHERE istek_sayisi < ? "
                     "RETURNING istek_sayisi",
-                    (self._bugun(), gunluk_sinir),
+                    (bugun_iso(), gunluk_sinir),
                 ).fetchone()
         if satir is None:
             raise YapayZekaHatasi(
                 f"Bugünkü öneri sınırına ({gunluk_sinir}) ulaşıldı. Yarın tekrar deneyin veya "
                 "Ayarlar sayfasından sınırı değiştirin.",
-                HTTP_COK_ISTEK,
+                HTTPStatus.TOO_MANY_REQUESTS,
             )
         return int(satir["istek_sayisi"])

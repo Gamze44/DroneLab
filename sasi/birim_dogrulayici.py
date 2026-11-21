@@ -9,7 +9,7 @@ için makul aralıkta olup olmadığına bakılarak yapılır.
 
 from typing import Final
 
-from cekirdek.birimler import BirimDonusturucu
+from cekirdek.birimler import BIRIM_CM, BIRIM_M, BIRIM_MM, BirimDonusturucu
 from sasi.modeller import BirimOnerisi, GeometriTuru, OneriKaynagi, SasiGeometrisi, SasiOlculeri
 
 # DEĞİŞTİRİLEBİLİR: Bir drone şasisinin en büyük ölçüsü için makul aralık (mm).
@@ -19,9 +19,9 @@ MAKUL_EN_BUYUK_MM: Final[float] = 2000.0
 
 # DEĞİŞTİRİLEBİLİR: Birim tahmin edilirken denenecek birimler, tercih sırasıyla.
 # inch yalnızca dosyada yazıyorsa önerilir; cm ile karışması kolay olduğu için tahmin edilmez.
-TAHMIN_SIRASI: Final[tuple[str, ...]] = ("mm", "cm", "m")
+TAHMIN_SIRASI: Final[tuple[str, ...]] = (BIRIM_MM, BIRIM_CM, BIRIM_M)
 
-VARSAYILAN_BIRIM: Final[str] = "mm"
+VARSAYILAN_BIRIM: Final[str] = BIRIM_MM
 
 
 class BirimDogrulayici:
@@ -55,7 +55,7 @@ class BirimDogrulayici:
         dosya_birimi = geometri.dosya_birimi
 
         if dosya_birimi is not None:
-            mm = en_buyuk * BirimDonusturucu.uzunluk_carpani(dosya_birimi)
+            mm = BirimDonusturucu.uzunlugu_mm_ye_cevir(en_buyuk, dosya_birimi)
             if self.makul_mu(mm):
                 return BirimOnerisi(
                     birim=dosya_birimi,
@@ -64,7 +64,7 @@ class BirimDogrulayici:
                 )
 
         for aday in TAHMIN_SIRASI:
-            mm = en_buyuk * BirimDonusturucu.uzunluk_carpani(aday)
+            mm = BirimDonusturucu.uzunlugu_mm_ye_cevir(en_buyuk, aday)
             if self.makul_mu(mm):
                 return BirimOnerisi(
                     birim=aday,

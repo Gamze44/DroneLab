@@ -6,16 +6,21 @@ TL ise program hiç internete çıkmaz.
 """
 
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 from cekirdek.ayarlar import VERITABANI_DOSYA_ADI
 from depolama.veritabani import Veritabani
-from elektronik.parcalar.drone_parcasi import DroneParcasi
-from elektronik.parcalar.parca import Parca
 from elektronik.servis import ElektronikServisi
 from maliyet.fiyat_deposu import ParcaFiyatDeposu, SasiFiyatDeposu, SasiMaliyeti
-from maliyet.hesap import MaliyetGirdisi, MaliyetHesaplayici, MaliyetOzeti, parca_elimde_mi
+from maliyet.hesap import (
+    GRUP_ALINACAK,
+    KalemKaynagi,
+    MaliyetGirdisi,
+    MaliyetHesaplayici,
+    MaliyetOzeti,
+    parca_elimde_mi,
+)
 from maliyet.kur import KurDeposu, KurServisi, tcmb_xml_getir
 from maliyet.para import TL, Fiyat
 
@@ -26,8 +31,7 @@ SASI_ADI: str = "Şasi"
 class MaliyetSonucu:
     """
     Alanlar:
-        ozet: Hesaplanmış kalemler ve toplamlar (ilk kalem şasi).
-        satirlar: Her kalemin arayüzde düzenlenebilmesi için (bağ, parça) bilgisi; şasi için None.
+        ozet: Hesaplanmış kalemler ve toplamlar (ilk kalem şasi; parça kalemleri kaynağını taşır).
         sasi_elimde: Şasi elde mi.
         kur_notu: Kur alınamadıysa Türkçe not.
         kur_guncel_mi: Kurlar bugün alındıysa True; kur gerekmediyse None.
@@ -35,11 +39,21 @@ class MaliyetSonucu:
     """
 
     ozet: MaliyetOzeti
-    satirlar: list[tuple[DroneParcasi, Parca] | None] = field(default_factory=list)
     sasi_elimde: bool = False
     kur_notu: str | None = None
     kur_guncel_mi: bool | None = None
     butce_tl: float | None = None
+
+    @property
+    def butce_kalan_tl(self) -> float | None:
+        """
+        Bütçeden kalan, TL; bütçe girilmediyse None.
+
+        Bütçe yalnızca alınacak kalemlerle karşılaştırılır (elimdekiler için para harcanmaz).
+        """
+        if self.butce_tl is None:
+            return None
+        return self.butce_tl - self.ozet.toplamlar[GRUP_ALINACAK].tl
 
 
 class MaliyetServisi:
@@ -77,19 +91,20 @@ class MaliyetServisi:
         Hatalar:
             KayitBulunamadiHatasi: Drone yoksa.
         """
-        elektronik = self._elektronik.ozet(drone_kimlik)
+        # Uyum ve uçuş hesabı gerekmediği için tam elektronik özeti yerine hafif sorgular kullanılır.
+        kalemler = self._elektronik.kalemler(drone_kimlik)
+        hedefler = self._elektronik.hedefler(drone_kimlik)
         sasi = self._sasi_fiyatlari.getir(drone_kimlik)
-        fiyatlar = self._parca_fiyatlari.getir_hepsi([p.kimlik for _, p in elektronik.kalemler])
+        fiyatlar = self._parca_fiyatlari.getir_hepsi([p.kimlik for _, p in kalemler])
 
         girdiler = [MaliyetGirdisi(SASI_ADI, 1, sasi.elimde, sasi.fiyat)]
-        satirlar: list[tuple[DroneParcasi, Parca] | None] = [None]
-        for bag, parca in elektronik.kalemler:
-            girdiler.append(MaliyetGirdisi(parca.gorunen_ad, bag.adet, parca_elimde_mi(bag.durum), fiyatlar.get(parca.kimlik)))
-            satirlar.append((bag, parca))
+        for bag, parca in kalemler:
+            kaynak = KalemKaynagi(parca_kimlik=parca.kimlik, bag_kimlik=bag.kimlik, durum=bag.durum)
+            girdiler.append(
+                MaliyetGirdisi(parca.gorunen_ad, bag.adet, parca_elimde_mi(bag.durum), fiyatlar.get(parca.kimlik), kaynak)
+            )
 
-        sonuc = MaliyetSonucu(
-            ozet=MaliyetOzeti(kalemler=[]), satirlar=satirlar, sasi_elimde=sasi.elimde, butce_tl=elektronik.hedefler.butce_tl
-        )
+        sonuc = MaliyetSonucu(ozet=MaliyetOzeti(kalemler=[]), sasi_elimde=sasi.elimde, butce_tl=hedefler.butce_tl)
         kurlar = {}
         if any(g.fiyat is not None and g.fiyat.para_birimi != TL for g in girdiler) or kurlari_yenile:
             durum = self._kurlar.kurlar(zorla=kurlari_yenile)
@@ -116,6 +131,6 @@ class MaliyetServisi:
             KayitBulunamadiHatasi: Drone yoksa.
             GecersizDegerHatasi: Fiyat geçersizse.
         """
-        self._elektronik.ozet(drone_kimlik)  # drone var mı
+        self._elektronik.drone_getir(drone_kimlik)  # drone yoksa KayitBulunamadiHatasi
         fiyat = Fiyat(tutar, para_birimi) if tutar is not None else None
         self._sasi_fiyatlari.kaydet(drone_kimlik, SasiMaliyeti(fiyat=fiyat, elimde=elimde))

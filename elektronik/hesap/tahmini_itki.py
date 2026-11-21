@@ -14,35 +14,19 @@ Kabuller (neden bu formüller):
 
 import math
 
-from cekirdek.birimler import BirimDonusturucu
+from cekirdek.birimler import BIRIM_INC, BIRIM_M, BirimDonusturucu
 from elektronik.hesap.katsayilar import (
     HAVA_YOGUNLUGU_KG_M3,
     ITKI_KATSAYISI_TABLOSU,
     MOTOR_ESC_VERIMI,
     PERVANE_VERIM_KATSAYISI,
-    SANIYE_DAKIKA,
-    YERCEKIMI_M_S2,
     YUK_ALTINDA_DEVIR_ORANI,
 )
-
-INC: str = "inch"
-METRE: str = "m"
-KILOGRAM: str = "kg"
 
 
 def _cap_metre(cap_inc: float) -> float:
     """Pervane çapını inçten metreye çevirir (birimler modülü üzerinden)."""
-    return BirimDonusturucu.mm_yi_uzunluga_cevir(BirimDonusturucu.uzunlugu_mm_ye_cevir(cap_inc, INC), METRE)
-
-
-def _gram_newton(itki_g: float) -> float:
-    """Gram-kuvveti Newton'a çevirir."""
-    return BirimDonusturucu.grami_kutleye_cevir(itki_g, KILOGRAM) * YERCEKIMI_M_S2
-
-
-def _newton_gram(itki_n: float) -> float:
-    """Newton'u gram-kuvvete çevirir."""
-    return BirimDonusturucu.kutleyi_grama_cevir(itki_n / YERCEKIMI_M_S2, KILOGRAM)
+    return BirimDonusturucu.mm_yi_uzunluga_cevir(BirimDonusturucu.uzunlugu_mm_ye_cevir(cap_inc, BIRIM_INC), BIRIM_M)
 
 
 class TahminiItkiHesaplayici:
@@ -98,9 +82,9 @@ class TahminiItkiHesaplayici:
         Dönüş:
             İtki, gram.
         """
-        devir_saniye = kv * gerilim_v * self.devir_orani / SANIYE_DAKIKA
+        devir_saniye = BirimDonusturucu.dakika_basinadan_saniye_basinaya_cevir(kv * gerilim_v * self.devir_orani)
         itki_n = self.itki_katsayisi(cap_inc, hatve_inc) * self.hava_yogunlugu * devir_saniye**2 * _cap_metre(cap_inc) ** 4
-        return _newton_gram(itki_n)
+        return BirimDonusturucu.newtonu_gram_kuvvetine_cevir(itki_n)
 
     def asili_guc_w(self, itki_g: float, cap_inc: float) -> float:
         """
@@ -113,5 +97,5 @@ class TahminiItkiHesaplayici:
             Elektrik gücü, W.
         """
         disk_alani = math.pi * (_cap_metre(cap_inc) / 2) ** 2
-        ideal = _gram_newton(itki_g) ** 1.5 / math.sqrt(2 * self.hava_yogunlugu * disk_alani)
+        ideal = BirimDonusturucu.gram_kuvvetini_newtona_cevir(itki_g) ** 1.5 / math.sqrt(2 * self.hava_yogunlugu * disk_alani)
         return ideal / (self.verim_katsayisi * self.motor_esc_verimi)

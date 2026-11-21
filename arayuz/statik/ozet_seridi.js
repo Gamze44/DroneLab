@@ -3,6 +3,13 @@
 // ya da şartname değiştiğinde ustOzetiYenile() çağrılır.
 "use strict";
 
+// DEĞİŞTİRİLEBİLİR: Özet şeridindeki ondalık basamaklar. Şerit dar olduğu için sekmelerdekinden az olabilir;
+// adlar elektronik.js / maliyet.js'teki sabitlerle çakışmasın diye OZET_ ile başlar (sayfada tek ortak kapsam var).
+const OZET_AGIRLIK_BASAMAK = 0;
+const OZET_ORAN_BASAMAK = 1;
+const OZET_SURE_BASAMAK = 1;
+const OZET_TL_BASAMAK = 0;
+
 let ozetIstegiSirasi = 0; // üst üste gelen yenilemelerde yalnızca en sonuncusu ekrana yazılsın
 
 function ozetKutusu(kimlik, deger, alt, durum) {
@@ -40,34 +47,34 @@ function ozetiYaz(o, m, s) {
   const u = o.ucus;
 
   // Ağırlık
-  ozetKutusu("oz-agirlik", a.toplam_g > 0 ? `${sayiBicimle(a.toplam_g, 0)} g` : "–",
+  ozetKutusu("oz-agirlik", a.toplam_g > 0 ? `${sayiBicimle(a.toplam_g, OZET_AGIRLIK_BASAMAK)} g` : "–",
     a.toplam_g <= 0 ? "ağırlık girilmedi" : a.eksiksiz_mi ? "tahmini (kablo payı dahil)" : "eksik: bazı ağırlıklar yok",
     a.toplam_g > 0 && !a.eksiksiz_mi ? "dikkat" : null);
 
   // İtki / ağırlık
   const oran = u.itki_agirlik_orani;
-  ozetKutusu("oz-oran", oran.deger != null ? sayiBicimle(oran.deger, 1) : "–",
-    oran.deger != null ? `hedef ≥ ${sayiBicimle(u.hedef_itki_agirlik, 1)}${oran.tahmini ? " · tahmini" : ""}` : "hesaplanamadı",
+  ozetKutusu("oz-oran", oran.deger != null ? sayiBicimle(oran.deger, OZET_ORAN_BASAMAK) : "–",
+    oran.deger != null ? `hedef ≥ ${sayiBicimle(u.hedef_itki_agirlik, OZET_ORAN_BASAMAK)}${oran.tahmini ? " · tahmini" : ""}` : "hesaplanamadı",
     u.hedefe_ulasiyor_mu === null ? null : u.hedefe_ulasiyor_mu ? "iyi" : "kotu");
 
   // Uçuş süresi
   const sure = u.ucus_suresi_dk;
   const sureDurum = u.ucus_suresi_hedefe_ulasiyor_mu;
-  ozetKutusu("oz-sure", sure.deger != null ? `${sayiBicimle(sure.deger, 1)} dk` : "–",
+  ozetKutusu("oz-sure", sure.deger != null ? `${sayiBicimle(sure.deger, OZET_SURE_BASAMAK)} dk` : "–",
     sure.deger == null ? "hesaplanamadı"
-      : u.hedef_ucus_suresi_dk != null ? `hedef ≥ ${sayiBicimle(u.hedef_ucus_suresi_dk, 1)} dk · tahmini` : "tahmini",
+      : u.hedef_ucus_suresi_dk != null ? `hedef ≥ ${sayiBicimle(u.hedef_ucus_suresi_dk, OZET_SURE_BASAMAK)} dk · tahmini` : "tahmini",
     sureDurum === null ? null : sureDurum ? "iyi" : "kotu");
 
   // Maliyet
   if (m) {
     const alinacak = m.toplamlar.alinacak;
     const eksik = m.toplamlar.toplam.eksik_kalem_sayisi;
-    let alt = `toplam değer ${sayiBicimle(m.toplamlar.toplam.tl, 0)} TL`;
+    let alt = `toplam değer ${sayiBicimle(m.toplamlar.toplam.tl, OZET_TL_BASAMAK)} TL`;
     if (eksik) alt += ` · ${eksik} fiyat eksik`;
     let durum = null;
-    let deger = `${sayiBicimle(alinacak.tl, 0)} TL`;
+    let deger = `${sayiBicimle(alinacak.tl, OZET_TL_BASAMAK)} TL`;
     if (m.butce_tl != null) {
-      deger += ` / ${sayiBicimle(m.butce_tl, 0)}`;
+      deger += ` / ${sayiBicimle(m.butce_tl, OZET_TL_BASAMAK)}`;
       // Fiyatı eksik kalem varken "bütçede" demek yanıltır; yalnızca aşım kesin olarak gösterilir.
       durum = m.butce_kalan_tl < 0 ? "kotu" : eksik ? null : "iyi";
     }

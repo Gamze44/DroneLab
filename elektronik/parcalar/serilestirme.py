@@ -6,16 +6,59 @@ türe özel teknik alanlar tek bir JSON sütununda durur. Bu sınıf ikisi
 arasındaki dönüşümü yapar.
 """
 
-from dataclasses import asdict
+from dataclasses import MISSING, asdict, fields
 from enum import Enum
 import json
-from typing import Any
+from typing import Any, Final
 
 from cekirdek.hatalar import GecersizDegerHatasi
 from elektronik.parcalar.cekirdek_parcalar import ItkiNoktasi, Motor
 from elektronik.parcalar.kayit import parca_sinifi
 from elektronik.parcalar.parca import Parca
 from elektronik.parcalar.turler import ParcaTuru
+
+ITKI_TABLOSU_ALANI: Final[str] = "itki_tablosu"
+EKSIK_PARCA_BILGISI_MESAJI: Final[str] = (
+    "Parça bilgileri eksik veya hatalı. Üretici, model ve (Diğer türünde) alt tür zorunludur."
+)
+HATALI_ITKI_TABLOSU_MESAJI: Final[str] = (
+    "İtki tablosu hatalı: her satırda gerilim, gaz ve itki olmalı; tanınmayan sütun bulunmamalı."
+)
+
+
+def _eksik_zorunlu_alanlar(sinif: type, degerler: dict[str, Any]) -> list[str]:
+    """
+    Dataclass'ın varsayılanı olmayan ve verilmemiş alanlarını döndürür.
+
+    Parametreler:
+        sinif: Dataclass sınıfı.
+        degerler: Verilen alanlar.
+    Dönüş:
+        Eksik alan adları.
+    """
+    return [
+        f.name for f in fields(sinif)
+        if f.init and f.default is MISSING and f.default_factory is MISSING and f.name not in degerler
+    ]
+
+
+def _itki_noktalari(ham: Any) -> list[ItkiNoktasi]:
+    """
+    İtki tablosu satırlarını ItkiNoktasi nesnelerine çevirir.
+
+    Hatalar:
+        GecersizDegerHatasi: Tablo liste değilse, satır sözlük değilse, tanınmayan sütun
+            varsa veya zorunlu sütun eksikse.
+    """
+    bilinen = {f.name for f in fields(ItkiNoktasi)}
+    if not isinstance(ham, list):
+        raise GecersizDegerHatasi(HATALI_ITKI_TABLOSU_MESAJI)
+    noktalar = []
+    for satir in ham:
+        if not isinstance(satir, dict) or set(satir) - bilinen or _eksik_zorunlu_alanlar(ItkiNoktasi, satir):
+            raise GecersizDegerHatasi(HATALI_ITKI_TABLOSU_MESAJI)
+        noktalar.append(ItkiNoktasi(**satir))
+    return noktalar
 
 
 class ParcaSerilestirici:
@@ -33,7 +76,7 @@ class ParcaSerilestirici:
         for ad, deger in parca.teknik_degerler().items():
             if isinstance(deger, Enum):
                 deger = deger.value
-            elif ad == "itki_tablosu" and deger is not None:
+            elif ad == ITKI_TABLOSU_ALANI and deger is not None:
                 deger = [asdict(n) for n in deger]
             sozluk[ad] = deger
         return json.dumps(sozluk, ensure_ascii=False)
@@ -74,15 +117,13 @@ class ParcaSerilestirici:
         ortak = {ad: deger for ad, deger in ortak.items() if ad in Parca.ORTAK_ALANLAR}
         bilinen = set(sinif.teknik_alan_adlari())
         teknik = {ad: deger for ad, deger in teknik.items() if ad in bilinen}
-        try:
-            if sinif is Motor and teknik.get("itki_tablosu"):
-                teknik["itki_tablosu"] = [ItkiNoktasi(**n) for n in teknik["itki_tablosu"]]
-            return sinif(**ortak, **teknik)
-        except TypeError as hata:
-            # dataclass, eksik zorunlu alanda (ör. DigerParca'da alt tür) TypeError fırlatır.
-            raise GecersizDegerHatasi(
-                "Parça bilgileri eksik veya hatalı. Üretici, model ve (Diğer türünde) alt tür zorunludur."
-            ) from hata
+        # Eksik zorunlu alan önceden denetlenir: her TypeError'ı "eksik bilgi" saymak,
+        # programdaki bir hatayı kullanıcıya veri girişi hatası gibi gösterirdi.
+        if _eksik_zorunlu_alanlar(sinif, {**ortak, **teknik}):
+            raise GecersizDegerHatasi(EKSIK_PARCA_BILGISI_MESAJI)
+        if sinif is Motor and teknik.get(ITKI_TABLOSU_ALANI):
+            teknik[ITKI_TABLOSU_ALANI] = _itki_noktalari(teknik[ITKI_TABLOSU_ALANI])
+        return sinif(**ortak, **teknik)
 
     @staticmethod
     def teknik_sozluk(parca: Parca) -> dict[str, Any]:

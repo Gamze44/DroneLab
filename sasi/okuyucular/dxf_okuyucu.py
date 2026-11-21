@@ -15,6 +15,7 @@ import ezdxf
 from ezdxf import path as dxf_yolu
 from ezdxf.entities import DXFGraphic
 
+from cekirdek.birimler import BIRIM_CM, BIRIM_INC, BIRIM_M, BIRIM_MM
 from cekirdek.hatalar import DosyaOkumaHatasi
 from sasi.konturlar import Kontur, KonturAlanHesaplayici, KonturBirlestirici
 from sasi.modeller import GeometriTuru, SasiGeometrisi
@@ -29,7 +30,7 @@ GEOMETRIK_TURLER: Final[frozenset[str]] = frozenset(
 EN_FAZLA_BLOK_DERINLIGI: Final[int] = 10
 
 # DXF $INSUNITS kodu -> programın birim adı. 0 "birimsiz" demektir, kullanıcıya sorulur.
-DXF_BIRIM_KODLARI: Final[dict[int, str]] = {1: "inch", 4: "mm", 5: "cm", 6: "m"}
+DXF_BIRIM_KODLARI: Final[dict[int, str]] = {1: BIRIM_INC, 4: BIRIM_MM, 5: BIRIM_CM, 6: BIRIM_M}
 
 # DEĞİŞTİRİLEBİLİR: Eğrileri düz parçalara bölerken izin verilen sapma ve iki ucun
 # "değiyor" sayılacağı mesafe. Çizim birimi bilinmediği için sabit bir değer yerine

@@ -13,15 +13,13 @@
     DELETE /api/dronelar/{kimlik}/sartname         -> drone'dan şartnameyi kaldır
 """
 
-from pathlib import Path
-import tempfile
 from typing import Any
 
 from fastapi import APIRouter, Form, UploadFile
 from pydantic import BaseModel, Field
 
-from arayuz.drone_rotalari import GECICI_DOSYA_ADI, gecici_dosyaya_yaz
 from arayuz.parametreler import GovdeKimligi, Kimlik
+from arayuz.yukleme import dosya_adi, gecici_yukleme
 from cekirdek.ayarlar import EN_BUYUK_SARTNAME_MB
 from sartname.kontrol import MaddeSonucu, durum_adi
 from sartname.modeller import BUYUKLUK_TANIMLARI, MADDE_SINIFI_ADLARI, SINIR_TURU_ADLARI, Madde, Sartname
@@ -97,12 +95,10 @@ def sartname_rotalarini_olustur(servis: SartnameServisi) -> APIRouter:
     @rotalar.post("/sartnameler")
     def yukle(dosya: UploadFile, ad: str = Form(...), drone_kimlik: GovdeKimligi | None = Form(None)) -> dict[str, Any]:
         """Şartname belgesini yükler; drone verilirse ona bağlar."""
-        dosya_adi = Path(dosya.filename or "").name
-        servis.dosya_turunu_denetle(dosya_adi)
-        with tempfile.TemporaryDirectory() as klasor:
-            gecici = Path(klasor) / (GECICI_DOSYA_ADI + Path(dosya_adi).suffix.lower())
-            gecici_dosyaya_yaz(dosya, gecici, EN_BUYUK_SARTNAME_MB)
-            sartname = servis.yukle(gecici, dosya_adi, ad, drone_kimlik)
+        belge_adi = dosya_adi(dosya)
+        servis.dosya_turunu_denetle(belge_adi)
+        with gecici_yukleme(dosya, EN_BUYUK_SARTNAME_MB) as gecici:
+            sartname = servis.yukle(gecici, belge_adi, ad, drone_kimlik)
         return sartname_sozlugu(sartname)
 
     @rotalar.get("/sartnameler/{kimlik}")

@@ -7,8 +7,6 @@
 // DEĞİŞTİRİLEBİLİR: Ekranda gösterilen ondalık basamak sayıları.
 const OLCU_BASAMAK = 1;
 const HACIM_BASAMAK = 1;
-const MM3_BIR_CM3 = 1000;
-const MM2_BIR_CM2 = 100;
 
 const BIRIM_ADLARI = { mm: "milimetre (mm)", cm: "santimetre (cm)", m: "metre (m)", inch: "inç (inch)" };
 const TUR_ADLARI = { kati: "3B katı model", levha: "2B levha çizimi" };
@@ -157,10 +155,11 @@ function sonucuGoster(s) {
   ];
   if (levhaMi) {
     satirlar.push(["Kalınlık", "ağırlık hesabı aşamasında girilecek"]);
-    satirlar.push(["Net alan (delikler çıkarılmış)", sayiBicimle(s.alan_mm2 / MM2_BIR_CM2, HACIM_BASAMAK) + " cm²"]);
+    // Birim dönüşümü (mm² → cm², mm³ → cm³) sunucuda yapılır; burada yalnızca gösterilir.
+    satirlar.push(["Net alan (delikler çıkarılmış)", sayiBicimle(s.alan_cm2, HACIM_BASAMAK) + " cm²"]);
   } else {
     satirlar.push(["Yükseklik (z)", sayiBicimle(s.yukseklik_mm, OLCU_BASAMAK) + " mm"]);
-    satirlar.push(["Hacim", sayiBicimle(s.hacim_mm3 / MM3_BIR_CM3, HACIM_BASAMAK) + " cm³"]);
+    satirlar.push(["Hacim", sayiBicimle(s.hacim_cm3, HACIM_BASAMAK) + " cm³"]);
   }
   tabloDoldur("sonuc-bilgileri", satirlar);
   listeKutusu("sonuc-uyarilari", "Uyarılar:", s.uyarilar);

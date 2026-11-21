@@ -3,8 +3,6 @@
 // elektronik.js'ten sonra yüklenir (turTanimlari, elektronikOzeti, elektronikOzetiniYenile oradadır).
 "use strict";
 
-// DEĞİŞTİRİLEBİLİR: Önerilerde önce bu sıradaki eksik türler seçili gelir.
-const ONERI_TUR_SIRASI = ["motor", "pervane", "esc", "pil", "ucus_karti", "alici", "guc_dagitim", "diger"];
 const GOOGLE_ARAMA_ADRESI = "https://www.google.com/search?q=";
 
 let oneriSonuclari = [];
@@ -18,8 +16,10 @@ function oneriPaneliniAc() {
   seceneklereYaz("oneri-tur", turTanimlari.turler);
   seceneklereYaz("oneri-alt-tur", turTanimlari.alt_turler);
   // Drone'da henüz olmayan ilk türü seç; kullanıcı en çok eksik parçayı merak eder.
+  // Türler sunucudan önem sırasıyla gelir (motor, pervane, esc, …); sıra orada değiştirilir.
+  const turler = turTanimlari.turler.map((t) => t.deger);
   const mevcut = new Set(elektronikOzeti.kalemler.map((k) => k.parca.tur));
-  $("oneri-tur").value = ONERI_TUR_SIRASI.find((t) => !mevcut.has(t)) || ONERI_TUR_SIRASI[0];
+  $("oneri-tur").value = turler.find((t) => !mevcut.has(t)) || turler[0];
   goster("oneri-alt-tur", $("oneri-tur").value === "diger");
   goster("oneri-karti", true);
   $("oneri-karti").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -49,18 +49,11 @@ async function oneriIste() {
   }
 }
 
-function eleman(etiket, sinif, metin) {
-  const e = document.createElement(etiket);
-  if (sinif) e.className = sinif;
-  if (metin !== undefined) e.textContent = metin;
-  return e;
-}
-
 function adaylariCiz() {
   const kap = $("oneri-adaylari");
   kap.replaceChildren();
   if (oneriSonuclari.length === 0) {
-    kap.append(eleman("p", "soluk", "Kullanılabilir aday gelmedi. Tekrar deneyin veya parçayı elle ekleyin."));
+    bosMesaj(kap, "Kullanılabilir aday gelmedi. Tekrar deneyin veya parçayı elle ekleyin.");
     return;
   }
   oneriSonuclari.forEach((aday, sira) => kap.append(adayKarti(aday, sira)));
@@ -81,51 +74,51 @@ function teknikOzeti(parca) {
 
 function adayKarti(aday, sira) {
   const p = aday.parca;
-  const kart = eleman("div", "aday-karti");
+  const kart = ogeOlustur("div", "aday-karti");
 
-  const baslik = eleman("div", "liste-baslik", `${sira + 1}. ${p.gorunen_ad}`);
-  baslik.append(aday.katalog_kimlik ? eleman("span", "etiket dosya", "katalogda var") : eleman("span", "etiket uyari", "doğrulanmadı"));
+  const baslik = ogeOlustur("div", "liste-baslik", `${sira + 1}. ${p.gorunen_ad}`);
+  baslik.append(aday.katalog_kimlik ? ogeOlustur("span", "etiket dosya", "katalogda var") : ogeOlustur("span", "etiket uyari", "doğrulanmadı"));
   const uyumsuz = aday.uyum.filter((u) => u.durum === "uygunsuz").length;
-  if (uyumsuz) baslik.append(eleman("span", "etiket hata", `${uyumsuz} uyumsuzluk`));
+  if (uyumsuz) baslik.append(ogeOlustur("span", "etiket hata", `${uyumsuz} uyumsuzluk`));
   kart.append(baslik);
 
   const agirlik = p.agirlik_g != null ? `${sayiBicimle(p.agirlik_g, AGIRLIK_BASAMAK)} g × ${aday.adet}` : "ağırlık bilinmiyor";
-  kart.append(eleman("div", "soluk", agirlik));
-  if (aday.gerekce) kart.append(eleman("p", "", aday.gerekce));
+  kart.append(ogeOlustur("div", "soluk", agirlik));
+  if (aday.gerekce) kart.append(ogeOlustur("p", "", aday.gerekce));
   const teknik = teknikOzeti(p);
-  if (teknik) kart.append(eleman("div", "soluk", teknik));
+  if (teknik) kart.append(ogeOlustur("div", "soluk", teknik));
   if (aday.silinen_alanlar.length) {
-    kart.append(eleman("div", "soluk", `Geçersiz geldiği için boş bırakılan değerler: ${aday.silinen_alanlar.join(", ")}`));
+    kart.append(ogeOlustur("div", "soluk", `Geçersiz geldiği için boş bırakılan değerler: ${aday.silinen_alanlar.join(", ")}`));
   }
 
   // Programın değerlendirmesi
   const hesap = [];
   if (aday.itki_agirlik) hesap.push(`itki/ağırlık: ${hesapMetni(aday.itki_agirlik, "", ORAN_BASAMAK)}`);
   if (aday.ucus_suresi_dk) hesap.push(`uçuş süresi: ${hesapMetni(aday.ucus_suresi_dk, " dk", SURE_BASAMAK)}`);
-  if (hesap.length) kart.append(eleman("div", "soluk", `Bu parçayla ${hesap.join(" · ")}`));
-  const sirali = [...aday.uyum].sort((a, b) => UYUM_SIRASI.indexOf(a.durum) - UYUM_SIRASI.indexOf(b.durum));
+  if (hesap.length) kart.append(ogeOlustur("div", "soluk", `Bu parçayla ${hesap.join(" · ")}`));
+  const sirali = [...aday.uyum].sort((a, b) => UYUM_DURUM_SIRASI.indexOf(a.durum) - UYUM_DURUM_SIRASI.indexOf(b.durum));
   for (const u of sirali) {
-    const satir = eleman("div", `uyum-satiri uyum-${u.durum}`);
-    const metin = eleman("div", "soluk", `${u.kod} · ${u.baslik}: ${u.aciklama}`);
+    const satir = ogeOlustur("div", `uyum-satiri uyum-${u.durum}`);
+    const metin = ogeOlustur("div", "soluk", `${u.kod} · ${u.baslik}: ${u.aciklama}`);
     metin.style.whiteSpace = "pre-line";
-    satir.append(eleman("span", "uyum-isareti", UYUM_ISARETLERI[u.durum]), metin);
+    satir.append(ogeOlustur("span", "uyum-isareti", UYUM_ISARETLERI[u.durum]), metin);
     kart.append(satir);
   }
 
   for (const ihlal of aday.sartname_ihlalleri || []) {
-    const satir = eleman("div", "uyum-satiri uyum-uygunsuz");
+    const satir = ogeOlustur("div", "uyum-satiri uyum-uygunsuz");
     const yer = ihlal.madde_no ? `Şartname madde ${ihlal.madde_no}` : "Şartname";
-    satir.append(eleman("span", "uyum-isareti", "✗"), eleman("div", "soluk", `${yer}: ${ihlal.aciklama}`));
+    satir.append(ogeOlustur("span", "uyum-isareti", "✗"), ogeOlustur("div", "soluk", `${yer}: ${ihlal.aciklama}`));
     kart.append(satir);
   }
-  if ((aday.sartname_ihlalleri || []).length) baslik.append(eleman("span", "etiket hata", "şartnameye uymuyor"));
+  if ((aday.sartname_ihlalleri || []).length) baslik.append(ogeOlustur("span", "etiket hata", "şartnameye uymuyor"));
 
-  const dugmeler = eleman("div", "satir");
+  const dugmeler = ogeOlustur("div", "satir");
   dugmeler.style.marginTop = "8px";
-  const sec = eleman("button", "", `Bunu seç (${aday.adet} adet, önerilen)`);
+  const sec = ogeOlustur("button", "", `Bunu seç (${aday.adet} adet, önerilen)`);
   sec.type = "button";
   sec.addEventListener("click", () => adayiSec(aday, sec));
-  const ara = eleman("a", "kaynak", "Google'da ara (fiyat ve özellikleri kontrol et)");
+  const ara = ogeOlustur("a", "kaynak", "Google'da ara (fiyat ve özellikleri kontrol et)");
   ara.href = GOOGLE_ARAMA_ADRESI + encodeURIComponent(`${p.uretici} ${p.model}`);
   ara.target = "_blank";
   ara.rel = "noopener noreferrer";

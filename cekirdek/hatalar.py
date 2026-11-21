@@ -7,6 +7,7 @@ gösterebilir; beklenmeyen Python hataları ise ayrı ele alınır.
 """
 
 from collections.abc import Iterable
+from http import HTTPStatus
 
 
 class DroneProgramHatasi(Exception):
@@ -90,7 +91,7 @@ class YapayZekaHatasi(DroneProgramHatasi):
         http_kodu: Arayüze döndürülecek HTTP durum kodu.
     """
 
-    def __init__(self, mesaj: str, http_kodu: int = 502) -> None:
+    def __init__(self, mesaj: str, http_kodu: int = HTTPStatus.BAD_GATEWAY) -> None:
         super().__init__(mesaj)
         self.http_kodu: int = http_kodu
 

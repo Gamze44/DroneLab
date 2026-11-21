@@ -108,7 +108,7 @@ function raporuCiz(rapor) {
   const kap = $("sartname-raporu");
   kap.replaceChildren();
   if (rapor.length === 0) {
-    kap.append(Object.assign(document.createElement("p"), { className: "soluk", textContent: "Henüz madde yok." }));
+    bosMesaj(kap, "Henüz madde yok.");
     return;
   }
   // Şartnamedeki sırayla (madde numarası) gösterilir; rapor şartnameyle karşılaştırılarak okunur.
@@ -150,30 +150,17 @@ async function maddeleriYukle(sartnameKimlik) {
   $("madde-durumu").textContent = s.maddeler.length ? "" : "Henüz madde yok.";
 }
 
-function secici(secenekler, deger) {
-  const s = document.createElement("select");
-  for (const o of secenekler) s.append(new Option(o.ad, o.deger));
-  if (deger) s.value = deger;
-  return s;
-}
-
-function hucreyle(eleman) {
-  const td = document.createElement("td");
-  td.append(eleman);
-  return td;
-}
-
 function maddeSatiri(m = {}) {
   const tr = document.createElement("tr");
   const no = Object.assign(document.createElement("input"), { type: "text", value: m.madde_no ?? "", placeholder: "4.2" });
   const sayfa = Object.assign(document.createElement("input"), { type: "number", min: "1", step: "1", value: m.sayfa ?? "" });
   const aciklama = Object.assign(document.createElement("textarea"), { value: m.aciklama ?? "", placeholder: "Şartnamedeki ifade" });
-  const buyukluk = secici(sartnameSecenekleri.buyuklukler, m.buyukluk);
-  const sinir = secici(sartnameSecenekleri.sinir_turleri, m.sinir_turu || "en_cok");
+  const buyukluk = seciciOlustur(sartnameSecenekleri.buyuklukler, m.buyukluk);
+  const sinir = seciciOlustur(sartnameSecenekleri.sinir_turleri, m.sinir_turu || "en_cok");
   const deger = Object.assign(document.createElement("input"), { type: "number", min: "0", step: "any", value: m.deger ?? "" });
   const birim = document.createElement("span");
   birim.className = "soluk";
-  const sinif = secici(sartnameSecenekleri.siniflar, m.sinif);
+  const sinif = seciciOlustur(sartnameSecenekleri.siniflar, m.sinif);
   const onay = Object.assign(document.createElement("input"), { type: "checkbox", checked: !!m.onaylandi, title: "Şartnameyle karşılaştırdım, doğru" });
   const sil = Object.assign(document.createElement("button"), { type: "button", className: "tehlike", textContent: "Sil" });
   sil.addEventListener("click", () => tr.remove());
@@ -191,8 +178,8 @@ function maddeSatiri(m = {}) {
 
   const degerHucresi = document.createElement("td");
   degerHucresi.append(deger, birim);
-  tr.append(hucreyle(no), hucreyle(sayfa), hucreyle(aciklama), hucreyle(buyukluk), hucreyle(sinir), degerHucresi,
-    hucreyle(sinif), hucreyle(onay), hucreyle(sil));
+  tr.append(hucreOlustur(no), hucreOlustur(sayfa), hucreOlustur(aciklama), hucreOlustur(buyukluk), hucreOlustur(sinir), degerHucresi,
+    hucreOlustur(sinif), hucreOlustur(onay), hucreOlustur(sil));
   tr.oku = () => ({
     madde_no: no.value.trim() || null,
     sayfa: sayfa.value === "" ? null : Number(sayfa.value),

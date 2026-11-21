@@ -19,7 +19,7 @@ from elektronik.oneri.sema import OneriSemasiOlusturucu
 from elektronik.parcalar.drone_parcasi import DroneParcasi
 from elektronik.parcalar.kayit import parca_sinifi
 from elektronik.parcalar.parca import Parca
-from elektronik.parcalar.turler import DigerAltTur, ParcaDurumu, ParcaTuru
+from elektronik.parcalar.turler import ALT_TUR_GEREKLI_MESAJI, DigerAltTur, ParcaDurumu, ParcaTuru
 from elektronik.servis import ElektronikServisi
 from sartname.modeller import Madde
 
@@ -100,7 +100,7 @@ class OneriServisi:
             YapayZekaHatasi: Anahtar yoksa, günlük sınır dolduysa veya istek başarısızsa.
         """
         if tur is ParcaTuru.DIGER and alt_tur is None:
-            raise GecersizDegerHatasi("Diğer parçalar için alt tür (kamera, VTX, GPS…) seçilmeli.")
+            raise GecersizDegerHatasi(ALT_TUR_GEREKLI_MESAJI)
         if tur is not ParcaTuru.DIGER:
             alt_tur = None
         ozet = self._elektronik.ozet(drone_kimlik)
@@ -163,38 +163,3 @@ class OneriServisi:
             raise GecersizDegerHatasi("Seçilen önerinin parça bilgisi eksik.")
         parca = self._elektronik.oneri_parcasi_olustur(tur, alt_tur, ortak, teknik or {})
         return self._elektronik.yeni_parca_ekle(drone_kimlik, parca, adet, ParcaDurumu.ONERILEN)
-
-    # ---------- Ayarlar ----------
-
-    def ayar_durumu(self) -> dict[str, Any]:
-        """Ayarlar sayfası bilgisi. Anahtarın kendisi ASLA döndürülmez, yalnızca var/yok ve kaynağı."""
-        ayarlar = self._yz.ayarlar.oku()
-        return {
-            "anahtar_var": self._yz.anahtar.kaynak() is not None,
-            "anahtar_kaynagi": self._yz.anahtar.kaynak(),
-            "model": ayarlar.model,
-            "gunluk_sinir": ayarlar.gunluk_sinir,
-            "bugun_kullanilan": self._yz.sayac.bugun(),
-        }
-
-    def ayarlari_guncelle(self, model: str | None, gunluk_sinir: int | None, anahtar: str | None) -> dict[str, Any]:
-        """
-        Model, günlük sınır ve/veya anahtarı değiştirir; verilmeyenler aynı kalır.
-
-        Hatalar:
-            GecersizDegerHatasi: Değer geçersizse.
-        """
-        ayarlar = self._yz.ayarlar.oku()
-        if model is not None:
-            ayarlar.model = model
-        if gunluk_sinir is not None:
-            ayarlar.gunluk_sinir = gunluk_sinir
-        self._yz.ayarlar.kaydet(ayarlar)
-        if anahtar:
-            self._yz.anahtar.kaydet(anahtar)
-        return self.ayar_durumu()
-
-    def anahtari_sil(self) -> dict[str, Any]:
-        """Anahtar dosyasını siler (ortam değişkenindeki anahtar etkilenmez)."""
-        self._yz.anahtar.sil()
-        return self.ayar_durumu()

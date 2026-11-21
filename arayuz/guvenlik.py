@@ -23,6 +23,8 @@ import json
 from typing import Any, Final
 from urllib.parse import urlsplit
 
+from cekirdek.birimler import BAYT_BIR_MB
+
 Kapsam = MutableMapping[str, Any]
 Mesaj = MutableMapping[str, Any]
 Alici = Callable[[], Awaitable[Mesaj]]
@@ -36,7 +38,6 @@ YAZMA_YONTEMLERI: Final[frozenset[str]] = frozenset({"POST", "PUT", "PATCH", "DE
 # program da tarayıcıya göre "aynı site"dir.
 GUVENLI_KAYNAK_DEGERLERI: Final[frozenset[str]] = frozenset({"same-origin", "none"})
 
-BAYT_BIR_MB: Final[int] = 1024 * 1024
 # multipart gövdesinde dosyanın yanında alan adları ve sınır satırları da bulunur.
 # DEĞİŞTİRİLEBİLİR: Dosya boyut sınırının üzerine eklenen pay (bayt).
 COK_PARCALI_EK_PAY_BAYT: Final[int] = BAYT_BIR_MB

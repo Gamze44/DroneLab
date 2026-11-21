@@ -12,7 +12,8 @@ from typing import Any, Final
 
 from cekirdek.hatalar import GecersizDegerHatasi
 from cekirdek.sayilar import gecerli_sayi_mi
-from elektronik.parcalar.alan_tanimlari import alan_tanimlari
+from elektronik.parcalar.alan_tanimlari import SECIM, alan_tanimlari
+from elektronik.parcalar.denetim import AlanCinsi
 from elektronik.parcalar.kayit import parca_sinifi
 from elektronik.parcalar.parca import Parca
 from elektronik.parcalar.serilestirme import ParcaSerilestirici
@@ -49,23 +50,23 @@ def _ture_uydur(cins: str, deger: Any, secenekler: set[str]) -> tuple[bool, Any]
     Dönüş:
         (uygun mu, uydurulmuş değer). 4.0 gibi tam sayılı ondalık, tam sayıya çevrilir.
     """
-    if cins == "tamsayi":
+    if cins == AlanCinsi.TAMSAYI:
         if _sayi_mi(deger) and float(deger).is_integer():
             return True, int(deger)
         return False, None
-    if cins == "sayi":
+    if cins == AlanCinsi.SAYI:
         return (True, deger) if _sayi_mi(deger) else (False, None)
-    if cins == "metin":
+    if cins == AlanCinsi.METIN:
         return (True, deger.strip()[:EN_UZUN_AD]) if isinstance(deger, str) and deger.strip() else (False, None)
-    if cins == "mantiksal":
+    if cins == AlanCinsi.MANTIKSAL:
         return (True, deger) if isinstance(deger, bool) else (False, None)
-    if cins == "metin_listesi":
+    if cins == AlanCinsi.METIN_LISTESI:
         if isinstance(deger, list) and deger and all(isinstance(d, str) and d.strip() for d in deger):
             return True, [d.strip()[:EN_UZUN_AD] for d in deger]
         return False, None
-    if cins == "sayi_listesi":
+    if cins == AlanCinsi.SAYI_LISTESI:
         return (True, deger) if isinstance(deger, list) and deger and all(_sayi_mi(d) for d in deger) else (False, None)
-    if cins == "secim":
+    if cins == SECIM:
         return (True, deger) if deger in secenekler else (False, None)
     return False, None
 

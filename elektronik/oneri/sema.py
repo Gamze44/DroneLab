@@ -8,17 +8,18 @@ Teknik alanların hiçbiri zorunlu değildir: model emin olmadığı değeri yaz
 
 from typing import Any, Final
 
-from elektronik.parcalar.alan_tanimlari import alan_tanimlari
+from elektronik.parcalar.alan_tanimlari import SECIM, alan_tanimlari
+from elektronik.parcalar.denetim import AlanCinsi
 from elektronik.parcalar.parca import Parca
 
 # alan_tanimlari'ndaki "cins" -> JSON şeması türü.
 CINS_SEMALARI: Final[dict[str, dict[str, Any]]] = {
-    "tamsayi": {"type": "integer"},
-    "sayi": {"type": "number"},
-    "metin": {"type": "string"},
-    "mantiksal": {"type": "boolean"},
-    "metin_listesi": {"type": "array", "items": {"type": "string"}},
-    "sayi_listesi": {"type": "array", "items": {"type": "number"}},
+    AlanCinsi.TAMSAYI: {"type": "integer"},
+    AlanCinsi.SAYI: {"type": "number"},
+    AlanCinsi.METIN: {"type": "string"},
+    AlanCinsi.MANTIKSAL: {"type": "boolean"},
+    AlanCinsi.METIN_LISTESI: {"type": "array", "items": {"type": "string"}},
+    AlanCinsi.SAYI_LISTESI: {"type": "array", "items": {"type": "number"}},
 }
 
 
@@ -30,7 +31,7 @@ class OneriSemasiOlusturucu:
         """Parça sınıfının teknik alanlarının şeması (hepsi isteğe bağlı)."""
         ozellikler: dict[str, Any] = {}
         for alan in alan_tanimlari(sinif):
-            if alan["cins"] == "secim":
+            if alan["cins"] == SECIM:
                 sema: dict[str, Any] = {"type": "string", "enum": [s["deger"] for s in alan["secenekler"]]}
             else:
                 sema = dict(CINS_SEMALARI[alan["cins"]])

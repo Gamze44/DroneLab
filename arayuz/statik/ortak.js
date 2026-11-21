@@ -13,6 +13,14 @@ function sayiBicimle(deger, basamak) {
   return Number(deger).toLocaleString("tr-TR", { minimumFractionDigits: basamak, maximumFractionDigits: basamak });
 }
 
+// Kullanıcının yazdığı sayıyı okur; Türkçede ondalık virgülle yazıldığı için "12,5" de kabul edilir.
+// Boş metin null döner; sayı değilse NaN döner (hata mesajını çağıran yer verir).
+function sayiOku(metin) {
+  const ham = String(metin).trim();
+  if (ham === "") return null;
+  return Number(ham.replace(",", "."));
+}
+
 function zamanBicimle(isoZaman) {
   const tarih = new Date(isoZaman);
   return isNaN(tarih) ? isoZaman : tarih.toLocaleString("tr-TR", { dateStyle: "medium", timeStyle: "short" });
@@ -69,6 +77,63 @@ function listeKutusu(kimlik, baslik, maddeler, siraliMi = false) {
   goster(kimlik, true);
 }
 
+// Yeni HTML öğesi oluşturur; sinif boşsa sınıf verilmez, metin verilmezse içi boş kalır.
+function ogeOlustur(etiket, sinif, metin) {
+  const oge = document.createElement(etiket);
+  if (sinif) oge.className = sinif;
+  if (metin !== undefined) oge.textContent = metin;
+  return oge;
+}
+
+// Tablo hücresi oluşturur. icerik: metin, tek öğe ya da öğe listesi.
+function hucreOlustur(icerik) {
+  const td = document.createElement("td");
+  if (typeof icerik === "string") td.textContent = icerik;
+  else if (icerik) td.append(...[].concat(icerik));
+  return td;
+}
+
+// Seçim kutusuna {deger, ad} listesini yazar (eski seçenekler silinir) ve kutuyu döndürür.
+// secici: kutunun kimliği ya da kendisi. bosMetin verilirse en başa boş seçenek eklenir.
+function seceneklereYaz(secici, secenekler, bosMetin = null) {
+  const kutu = typeof secici === "string" ? $(secici) : secici;
+  kutu.replaceChildren();
+  if (bosMetin !== null) kutu.append(new Option(bosMetin, ""));
+  for (const { deger, ad } of secenekler) kutu.append(new Option(ad, deger));
+  return kutu;
+}
+
+// {deger, ad} listesinden yeni seçim kutusu oluşturur; secili verilirse o seçenek seçili gelir.
+function seciciOlustur(secenekler, secili = null) {
+  const kutu = seceneklereYaz(document.createElement("select"), secenekler);
+  if (secili) kutu.value = secili;
+  return kutu;
+}
+
+// Kabın içeriğini tek bir soluk bilgi cümlesiyle değiştirir (ör. henüz çizilecek veri yokken).
+function bosMesaj(kap, metin) {
+  kap.replaceChildren(ogeOlustur("p", "soluk", metin));
+}
+
+// ---------- Hesap sonuçları ----------
+
+// Uyum durumları en sorunludan en iyiye; sıralamada ve "en kötü durum" seçiminde kullanılır.
+const UYUM_DURUM_SIRASI = ["uygunsuz", "uyari", "bilinmiyor", "uygun"];
+
+// Hesaplanamayan değerin nedenini "hesaplanamadı – neden" biçiminde yazar.
+// cumleBasi: metin tek başına (ör. ayrı paragrafta) duruyorsa büyük harfle başlar.
+function hesaplanamadiMetni(h, cumleBasi = false) {
+  return `${cumleBasi ? "Hesaplanamadı" : "hesaplanamadı"} – ${h.aciklama}`;
+}
+
+// Sunucudan gelen hesap değerini ({deger, tahmini, aciklama}) "1.234,5 g (tahmini)"
+// ya da "hesaplanamadı – neden" biçiminde yazar.
+function hesapMetni(h, birim, basamak) {
+  if (h.deger == null) return hesaplanamadiMetni(h);
+  const etiket = h.tahmini ? " (tahmini)" : "";
+  return `${sayiBicimle(h.deger, basamak)}${birim}${etiket}`;
+}
+
 // ---------- SVG çizim yardımcıları ----------
 
 const SVG_AD_ALANI = "http://www.w3.org/2000/svg";
@@ -99,6 +164,12 @@ const DRONE_CIZIM_OLCULERI = {
   8: { kol: 41, pervane: 9, govde: "daire" },
 };
 
+// Motorlar çember üzerinde eşit aralıklı kabul edilir; sira'ncı (0'dan başlar) motorun açısını radyan olarak verir.
+// İlk kol öne-sağa bakar (quad'da X düzeni). SVG'de 0° sağı gösterdiği için 90° geri çevrilir.
+function motorAcisi(sira, motorSayisi) {
+  return ((360 / motorSayisi) * sira + 180 / motorSayisi - 90) * (Math.PI / 180);
+}
+
 // Yukarıdan bakılmış çok rotorlu drone. motorSayisi 4 (quad, X düzeni), 6 (hexa) veya 8 (okto).
 // Pervaneler .pervane sınıfıyla döndürülebilir; komşu pervaneler ters yöne döner (gerçekteki gibi).
 // Renk "currentColor"dan gelir; boyut kapsayan SVG'nin genişliğiyle belirlenir.
@@ -106,8 +177,7 @@ function droneCizimi(sinif = "", motorSayisi = 4) {
   const o = DRONE_CIZIM_OLCULERI[motorSayisi] || DRONE_CIZIM_OLCULERI[4];
   const konumlar = [];
   for (let i = 0; i < motorSayisi; i++) {
-    // İlk kol öne-sağa bakar (quad'da X düzeni); kollar eşit açıyla dizilir.
-    const aci = ((360 / motorSayisi) * i + 180 / motorSayisi - 90) * (Math.PI / 180);
+    const aci = motorAcisi(i, motorSayisi);
     konumlar.push([50 + o.kol * Math.cos(aci), 50 + o.kol * Math.sin(aci), i % 2 === 1]);
   }
   const p = o.pervane;

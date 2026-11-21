@@ -5,7 +5,8 @@
 
 const TL_BASAMAK = 2;
 const KUR_BASAMAK = 4;
-const TL_KODU = "TRY";
+// Sunucunun kalem.eksik_kodu değeri; ekrandaki "eksik" metni değişse de mantık bozulmasın diye koda bakılır.
+const FIYAT_YOK_KODU = "fiyat_yok";
 
 let paraBirimleri = null;
 
@@ -55,25 +56,19 @@ function toplamlariCiz(m) {
 
   const uyarilar = [];
   if (m.kur_notu) uyarilar.push(m.kur_notu);
-  for (const k of m.kalemler) if (k.eksik && k.eksik !== "fiyat girilmemiş") uyarilar.push(`${k.ad}: ${k.eksik}`);
-  const eksikFiyat = m.kalemler.filter((k) => k.eksik === "fiyat girilmemiş").map((k) => k.ad);
+  for (const k of m.kalemler) if (k.eksik_kodu && k.eksik_kodu !== FIYAT_YOK_KODU) uyarilar.push(`${k.ad}: ${k.eksik}`);
+  const eksikFiyat = m.kalemler.filter((k) => k.eksik_kodu === FIYAT_YOK_KODU).map((k) => k.ad);
   if (eksikFiyat.length) uyarilar.push(`Fiyatı girilmemiş (toplama katılmadı): ${eksikFiyat.join(", ")}`);
   listeKutusu("maliyet-uyarisi", "Toplamlar eksik olabilir:", uyarilar);
 }
 
-function paraSecici(secili) {
+// yerelBirim: maliyet yanıtındaki yerel para birimi kodu ("TRY"); ekranda "TL" yazılır ve fiyatı olmayan kalemde seçili gelir.
+function paraSecici(secili, yerelBirim) {
   const s = document.createElement("select");
-  for (const { deger, ad } of paraBirimleri) s.append(new Option(deger === TL_KODU ? "TL" : deger, deger));
-  s.value = secili || TL_KODU;
+  for (const { deger, ad } of paraBirimleri) s.append(new Option(deger === yerelBirim ? "TL" : deger, deger));
+  s.value = secili || yerelBirim;
   s.title = "Para birimi";
   return s;
-}
-
-function hucre(icerik) {
-  const td = document.createElement("td");
-  if (typeof icerik === "string") td.textContent = icerik;
-  else if (icerik) td.append(...[].concat(icerik));
-  return td;
 }
 
 function kalemleriCiz(m) {
@@ -89,7 +84,7 @@ function kalemleriCiz(m) {
     tutar.className = "fiyat-girdisi";
     tutar.placeholder = "fiyat";
     if (k.tutar != null) tutar.value = k.tutar;
-    const para = paraSecici(k.para_birimi);
+    const para = paraSecici(k.para_birimi, m.yerel_para_birimi);
     const fiyatKaydet = () => fiyatiKaydet(k, tutar.value.trim(), para.value, k.tip === "sasi" ? elimdeKutusu.checked : null);
 
     let durum;
@@ -112,9 +107,9 @@ function kalemleriCiz(m) {
 
     let tlMetni = "–";
     if (k.tl_tutar != null) tlMetni = sayiBicimle(k.tl_tutar, TL_BASAMAK) + (k.tahmini ? " (tahmini)" : "");
-    else if (k.eksik && k.tutar != null) tlMetni = k.eksik;
+    else if (k.eksik_kodu && k.tutar != null) tlMetni = k.eksik;
 
-    tr.append(hucre(k.ad), hucre(durum), hucre(String(k.adet)), hucre([tutar, para]), hucre(tlMetni));
+    tr.append(hucreOlustur(k.ad), hucreOlustur(durum), hucreOlustur(String(k.adet)), hucreOlustur([tutar, para]), hucreOlustur(tlMetni));
     if (k.elimde) tr.className = "soluk";
     govde.append(tr);
   }
@@ -122,7 +117,7 @@ function kalemleriCiz(m) {
 
 async function fiyatiKaydet(kalem, hamTutar, paraBirimi, sasiElimde) {
   goster("maliyet-hatasi", false);
-  const tutar = hamTutar === "" ? null : Number(hamTutar.replace(",", "."));
+  const tutar = sayiOku(hamTutar);
   if (tutar !== null && Number.isNaN(tutar)) {
     hataGoster("maliyet-hatasi", { hata: "Fiyatı sayı olarak yazın (ör. 1250 veya 12,5)." });
     return;

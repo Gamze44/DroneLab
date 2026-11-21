@@ -20,16 +20,16 @@ function hedeflerSekmesiniAc() {
   $("hd-ucus").value = h.ucus_suresi_dk ?? "";
   $("hd-yuk").value = h.yuk_g ?? "";
   $("hd-butce").value = h.butce_tl ?? "";
-  $("hedef-drone-bilgisi").textContent = `Drone: ${$("drone-ozet").textContent.split(" · son değişiklik")[0]} · ${elektronikOzeti.motor_sayisi} motor`;
+  // Drone bilgisi drone.js'teki mevcutDrone'dan okunur; ekrandaki metin değişse de bozulmaz.
+  $("hedef-drone-bilgisi").textContent = `Drone: ${droneTanimi(mevcutDrone)} · ${elektronikOzeti.motor_sayisi} motor`;
   goster("hedef-hatasi", false);
   $("hedef-durumu").textContent = "";
   motorSeciciniKur();
 }
 
-function sayiOku(kimlik, ad) {
-  const ham = $(kimlik).value.trim().replace(",", ".");
-  if (ham === "") return null;
-  const deger = Number(ham);
+// Kimliği verilen girdideki sayıyı okur; boşsa null, sayı değilse kullanıcıya gösterilecek hata fırlatır.
+function girdiSayisiOku(kimlik, ad) {
+  const deger = sayiOku($(kimlik).value);
   if (Number.isNaN(deger)) throw { hata: `${ad} bir sayı olmalı.` };
   return deger;
 }
@@ -39,9 +39,9 @@ $("hedef-formu").addEventListener("submit", async (olay) => {
   goster("hedef-hatasi", false);
   try {
     const govde = {
-      ucus_suresi_dk: sayiOku("hd-ucus", "Uçuş süresi"),
-      yuk_g: sayiOku("hd-yuk", "Yük"),
-      butce_tl: sayiOku("hd-butce", "Bütçe"),
+      ucus_suresi_dk: girdiSayisiOku("hd-ucus", "Uçuş süresi"),
+      yuk_g: girdiSayisiOku("hd-yuk", "Yük"),
+      butce_tl: girdiSayisiOku("hd-butce", "Bütçe"),
     };
     await istekGonder(`/api/dronelar/${droneKimligi}/hedefler`, jsonIstegi("PUT", govde));
     $("hedef-durumu").textContent = "Kaydedildi.";
@@ -121,7 +121,7 @@ function itkiSatirlariniTopla() {
       const ham = girdi.value.trim();
       if (ham === "") { satir[girdi.dataset.ad] = null; continue; }
       dolu = true;
-      satir[girdi.dataset.ad] = girdi.type === "text" ? ham : Number(ham.replace(",", "."));
+      satir[girdi.dataset.ad] = girdi.type === "text" ? ham : sayiOku(ham);
     }
     if (dolu) satirlar.push(satir); // tamamen boş satırlar atlanır
   }

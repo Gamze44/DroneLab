@@ -18,9 +18,10 @@ from depolama.sasi_kayit_deposu import SasiKayitDeposu
 from depolama.veritabani import Veritabani
 from drone.hedefler import DroneHedefleri
 from drone.modeller import Drone
-from elektronik.parcalar.cekirdek_parcalar import ItkiNoktasi, Motor
+from elektronik.parcalar.cekirdek_parcalar import ItkiNoktasi, Motor, Pervane
 from elektronik.drone_parca_deposu import DroneParcaDeposu
 from elektronik.hesap.agirlik import AgirlikHesaplayici, AgirlikOzeti
+from elektronik.hesap.sasi_pervane import EnBuyukPervaneTahmincisi, SasiGorunumu
 from elektronik.hesap.ucus import UcusHesaplayici, UcusOzeti
 from elektronik.hesap.uyum import UyumSonucu
 from elektronik.hesap.uyumluluk import UyumlulukKontrolcusu
@@ -28,7 +29,7 @@ from elektronik.katalog import ParcaKatalogu
 from elektronik.parcalar.drone_parcasi import DroneParcasi
 from elektronik.parcalar.parca import Parca
 from elektronik.parcalar.serilestirme import ParcaSerilestirici
-from elektronik.parcalar.turler import DigerAltTur, ParcaDurumu, ParcaTuru
+from elektronik.parcalar.turler import ALT_TUR_GEREKLI_MESAJI, DigerAltTur, ParcaDurumu, ParcaTuru
 from elektronik.zorunlu_parcalar import Zorunluluk, ZorunluParcaDenetleyici
 from sasi.modeller import SasiOlculeri
 
@@ -49,6 +50,8 @@ class ElektronikOzeti:
         uyum: Uyum kontrolü sonuçları (K1–K13).
         ucus: Uçuş hesabı.
         sasi_olculeri: Birim onaylanmış şasi ölçüleri; yoksa None.
+        hedefler: Drone hedefleri.
+        sasi_gorunumu: Üstten görünüş çizimi için ölçüler (tahmini); şasi ölçüsü yoksa None.
     """
 
     drone: Drone
@@ -59,6 +62,7 @@ class ElektronikOzeti:
     ucus: UcusOzeti
     sasi_olculeri: SasiOlculeri | None = None
     hedefler: DroneHedefleri = field(default_factory=DroneHedefleri)
+    sasi_gorunumu: SasiGorunumu | None = None
 
     @property
     def parca_adetleri(self) -> list[tuple[Parca, int]]:
@@ -87,6 +91,7 @@ class ElektronikServisi:
         self._agirlik = AgirlikHesaplayici()
         self._uyum = UyumlulukKontrolcusu()
         self._ucus = UcusHesaplayici()
+        self._pervane_tahmincisi = EnBuyukPervaneTahmincisi()
 
     # ---------- Okuma ----------
 
@@ -99,13 +104,10 @@ class ElektronikServisi:
             KayitBulunamadiHatasi: Drone yoksa.
         """
         drone = self._dronelar.getir(drone_kimlik)
-        baglar = self._baglar.listele(drone_kimlik)
-        parcalar = self._katalog.getir_hepsi(bag.parca_kimlik for bag in baglar)
-        # Bağlı parça katalogdan silinemez (RESTRICT); yine de iki sorgu arasında bağ ve
-        # parça birlikte silinmişse o kalem atlanır, özet hata vermez.
-        kalemler = [(bag, parcalar[bag.parca_kimlik]) for bag in baglar if bag.parca_kimlik in parcalar]
+        kalemler = self._kalemleri_oku(drone_kimlik)
         parca_adetleri = [(parca, bag.adet) for bag, parca in kalemler]
         sasi = self._sasiler.getir(drone_kimlik)
+        sasi_olculeri = sasi.olculer if sasi else None
         hedefler = self._hedefler.getir(drone_kimlik)
         agirlik = self._agirlik.hesapla(drone.sasi_agirlik_g, parca_adetleri, yuk_g=hedefler.yuk_g or 0.0)
         return ElektronikOzeti(
@@ -113,27 +115,54 @@ class ElektronikServisi:
             kalemler=kalemler,
             zorunluluklar=self._zorunlu.denetle(parca_adetleri, drone.motor_sayisi, drone.amac),
             agirlik=agirlik,
-            uyum=self._uyum.kontrol_et(parca_adetleri, drone.motor_sayisi, sasi.olculer if sasi else None),
+            uyum=self._uyum.kontrol_et(parca_adetleri, drone.motor_sayisi, sasi_olculeri),
             ucus=self._ucus.hesapla(
                 parca_adetleri, drone.motor_sayisi, drone.amac, agirlik, hedef_ucus_suresi_dk=hedefler.ucus_suresi_dk
             ),
-            sasi_olculeri=sasi.olculer if sasi else None,
+            sasi_olculeri=sasi_olculeri,
             hedefler=hedefler,
+            sasi_gorunumu=self._sasi_gorunumu(sasi_olculeri, drone.motor_sayisi, parca_adetleri),
         )
 
-    # ---------- Hedefler ve itki tablosu ----------
-
-    def hedefleri_kaydet(self, drone_kimlik: int, hedefler: DroneHedefleri) -> DroneHedefleri:
+    def kalemler(self, drone_kimlik: int) -> list[tuple[DroneParcasi, Parca]]:
         """
-        Drone'un hedeflerini (uçuş süresi, yük, bütçe) kaydeder.
+        Drone'un (bağ, parça) listesi; uyum ve uçuş hesabı yapılmaz (hafif sorgu).
 
         Hatalar:
             KayitBulunamadiHatasi: Drone yoksa.
         """
         self._dronelar.getir(drone_kimlik)
-        self._hedefler.kaydet(drone_kimlik, hedefler)
-        self._dronelar.guncellendi_olarak_isaretle(drone_kimlik)
-        return hedefler
+        return self._kalemleri_oku(drone_kimlik)
+
+    def _kalemleri_oku(self, drone_kimlik: int) -> list[tuple[DroneParcasi, Parca]]:
+        """Bağları ve parçalarını iki sorguda okur (parça başına sorgu yok)."""
+        baglar = self._baglar.listele(drone_kimlik)
+        parcalar = self._katalog.getir_hepsi(bag.parca_kimlik for bag in baglar)
+        # Bağlı parça katalogdan silinemez (RESTRICT); yine de iki sorgu arasında bağ ve
+        # parça birlikte silinmişse o kalem atlanır, özet hata vermez.
+        return [(bag, parcalar[bag.parca_kimlik]) for bag in baglar if bag.parca_kimlik in parcalar]
+
+    def hedefler(self, drone_kimlik: int) -> DroneHedefleri:
+        """
+        Drone'un hedefleri (hafif sorgu).
+
+        Hatalar:
+            KayitBulunamadiHatasi: Drone yoksa.
+        """
+        self._dronelar.getir(drone_kimlik)
+        return self._hedefler.getir(drone_kimlik)
+
+    def _sasi_gorunumu(
+        self, olculer: SasiOlculeri | None, motor_sayisi: int, parca_adetleri: list[tuple[Parca, int]]
+    ) -> SasiGorunumu | None:
+        """Üstten görünüş ölçüleri; ilk pervanenin çapı da işlenir. Şasi ölçüsü yoksa None."""
+        if olculer is None:
+            return None
+        pervane = next((p for p, _ in parca_adetleri if isinstance(p, Pervane)), None)
+        return self._pervane_tahmincisi.gorunum(olculer, motor_sayisi, pervane.cap_inc if pervane else None)
+
+    # ---------- İtki tablosu ----------
+    # (Hedeflerin kaydı drone alanına aittir: drone/servis.py DroneServisi.hedefleri_kaydet.)
 
     def itki_tablosu_kaydet(self, parca_kimlik: int, satirlar: list[dict[str, Any]]) -> Parca:
         """
@@ -192,7 +221,7 @@ class ElektronikServisi:
         teknik = dict(teknik)
         if ParcaTuru(tur) is ParcaTuru.DIGER:
             if not alt_tur:
-                raise GecersizDegerHatasi("Diğer parçalar için alt tür (kamera, VTX, GPS…) seçilmeli.")
+                raise GecersizDegerHatasi(ALT_TUR_GEREKLI_MESAJI)
             teknik["alt_tur"] = alt_tur
         ortak = {**ortak, "dogrulandi": True, "kimlik": None}
         return self._serilestirici.sozlukten_olustur(tur, ortak, teknik)

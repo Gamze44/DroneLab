@@ -8,12 +8,15 @@ Ara değerler doğrusal bulunur; (0 gaz, 0 itki, 0 akım) başlangıç noktası 
 """
 
 import re
+from typing import Final
 
 from elektronik.parcalar.cekirdek_parcalar import ItkiNoktasi
 
 # Pervane yazımındaki ilk sayı çaptır: "5x4.3x3", "5143", "T5143S" gibi biçimlerden yalnızca "AxB" desteklenir.
-PERVANE_CAP_DESENI = re.compile(r"(\d+(?:[.,]\d+)?)\s*[xX×]")
-CAP_ESLESME_TOLERANSI_INC: float = 0.05
+PERVANE_CAP_DESENI: Final[re.Pattern[str]] = re.compile(r"(\d+(?:[.,]\d+)?)\s*[xX×]")
+# DEĞİŞTİRİLEBİLİR: Tablodaki pervane çapı drone'daki pervaneyle bu kadar (inç) farklıysa
+# yine "aynı pervane" sayılır (5.1 ile 5.13 gibi yazım farkları için).
+CAP_ESLESME_TOLERANSI_INC: Final[float] = 0.05
 
 
 def _cap(pervane: str | None) -> float | None:

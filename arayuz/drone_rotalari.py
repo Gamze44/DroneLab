@@ -9,23 +9,24 @@ Drone ve şasi API uçları.
     POST   /api/dronelar/{kimlik}/sasi         -> şasi dosyası yükle
     POST   /api/dronelar/{kimlik}/sasi/birim   -> birimi onayla
     PUT    /api/dronelar/{kimlik}/sasi/agirlik -> şasi ağırlığını elle gir / sil
+    PUT    /api/dronelar/{kimlik}/hedefler     -> uçuş süresi / yük / bütçe hedefleri
 
 Uçlar bilerek senkron (def) yazıldı: dosya okuma işlemci yoğun olduğu için
 FastAPI bunları ayrı iş parçacığında çalıştırır ve sunucu donmaz.
 """
 
 from dataclasses import asdict
-from pathlib import Path
-import tempfile
-from typing import Any, Final
+from typing import Any
 
 from fastapi import APIRouter, UploadFile
 from pydantic import BaseModel
 
+from arayuz.elektronik_sozlukleri import hedef_sozlugu
 from arayuz.parametreler import Kimlik
+from arayuz.yukleme import dosya_adi, gecici_yukleme
 from cekirdek.ayarlar import EN_BUYUK_YUKLEME_MB
-from cekirdek.birimler import UZUNLUK_CARPANLARI_MM
-from cekirdek.hatalar import DosyaOkumaHatasi
+from cekirdek.birimler import UZUNLUK_CARPANLARI_MM, BirimDonusturucu
+from drone.hedefler import DroneHedefleri
 from drone.modeller import (
     BASLANGIC_TURU_ADLARI,
     DRONE_TURU_ADLARI,
@@ -37,12 +38,6 @@ from drone.modeller import (
 )
 from drone.servis import DroneServisi
 from sasi.modeller import BirimOnerisi, KayitliSasi, SasiOlculeri
-
-BAYT_BIR_MB: Final[int] = 1024 * 1024
-OKUMA_PARCA_BOYUTU: Final[int] = BAYT_BIR_MB
-# Kullanıcının dosya adı geçici klasöre yazılmaz (ör. "..\..\x.stl" gibi adlara karşı);
-# okuyucular yalnızca uzantıya baktığı için sabit bir ad yeterlidir.
-GECICI_DOSYA_ADI: Final[str] = "yuklenen"
 
 
 class DroneIstegi(BaseModel):
@@ -64,6 +59,14 @@ class AgirlikIstegi(BaseModel):
     """Şasi ağırlığı isteğinin gövdesi; None ağırlığı siler."""
 
     agirlik_g: float | None
+
+
+class HedefIstegi(BaseModel):
+    """Drone hedefleri; boş (null) alan o hedefin girilmediği anlamına gelir."""
+
+    ucus_suresi_dk: float | None = None
+    yuk_g: float | None = None
+    butce_tl: float | None = None
 
 
 # ---------- JSON'a çeviriciler ----------
@@ -114,36 +117,17 @@ def yukleme_sozlugu(sasi: KayitliSasi, oneri: BirimOnerisi) -> dict[str, Any]:
 
 
 def olculer_sozlugu(olculer: SasiOlculeri | None) -> dict[str, Any] | None:
-    """Onaylanmış ölçüleri sözlüğe çevirir; onay yoksa None."""
-    return asdict(olculer) if olculer is not None else None
-
-
-# ---------- Yardımcılar ----------
-
-
-def gecici_dosyaya_yaz(dosya: UploadFile, hedef: Path, sinir_mb: int = EN_BUYUK_YUKLEME_MB) -> None:
     """
-    Yüklenen dosyayı boyut sınırını denetleyerek parça parça diske yazar.
+    Onaylanmış ölçüleri sözlüğe çevirir; onay yoksa None.
 
-    Parametreler:
-        dosya: Yüklenen dosya.
-        hedef: Yazılacak yol.
-        sinir_mb: En büyük boyut, MB.
-    Hatalar:
-        DosyaOkumaHatasi: Dosya boşsa veya boyut sınırını aşıyorsa.
+    Arayüz birim çevirmesin diye alan ve hacim cm cinsinden de gönderilir.
     """
-    sinir = sinir_mb * BAYT_BIR_MB
-    toplam = 0
-    with hedef.open("wb") as cikti:
-        while parca := dosya.file.read(OKUMA_PARCA_BOYUTU):
-            toplam += len(parca)
-            if toplam > sinir:
-                raise DosyaOkumaHatasi(
-                    f"Dosya {sinir_mb} MB sınırını aşıyor. Daha küçük bir dosya deneyin veya sınırı ayarlardan artırın."
-                )
-            cikti.write(parca)
-    if toplam == 0:
-        raise DosyaOkumaHatasi("Yüklenen dosya boş.")
+    if olculer is None:
+        return None
+    sozluk = asdict(olculer)
+    sozluk["alan_cm2"] = BirimDonusturucu.mm2_yi_cm2_ye_cevir(olculer.alan_mm2) if olculer.alan_mm2 is not None else None
+    sozluk["hacim_cm3"] = BirimDonusturucu.mm3_u_cm3_e_cevir(olculer.hacim_mm3) if olculer.hacim_mm3 is not None else None
+    return sozluk
 
 
 # ---------- Uçlar ----------
@@ -202,15 +186,10 @@ def drone_rotalarini_olustur(servis: DroneServisi) -> APIRouter:
     @rotalar.post("/dronelar/{kimlik}/sasi")
     def sasi_yukle(kimlik: Kimlik, dosya: UploadFile) -> dict[str, Any]:
         """Şasi dosyasını okur ve drone'a kaydeder."""
-        dosya_adi = Path(dosya.filename or "").name
-        servis.dosya_turunu_denetle(dosya_adi)
-
-        # Windows'ta açık dosya başka işlemce okunamadığı için NamedTemporaryFile
-        # yerine geçici klasör kullanılır; klasör iş bitince kendiliğinden silinir.
-        with tempfile.TemporaryDirectory() as klasor:
-            gecici_yol = Path(klasor) / (GECICI_DOSYA_ADI + Path(dosya_adi).suffix.lower())
-            gecici_dosyaya_yaz(dosya, gecici_yol)
-            sasi, drone = servis.sasi_yukle(kimlik, gecici_yol, dosya_adi)
+        ad = dosya_adi(dosya)
+        servis.dosya_turunu_denetle(ad)
+        with gecici_yukleme(dosya, EN_BUYUK_YUKLEME_MB) as gecici_yol:
+            sasi, drone = servis.sasi_yukle(kimlik, gecici_yol, ad)
 
         return {
             "drone": drone_sozlugu(drone),
@@ -227,5 +206,11 @@ def drone_rotalarini_olustur(servis: DroneServisi) -> APIRouter:
     def agirlik_ayarla(kimlik: Kimlik, istek: AgirlikIstegi) -> dict[str, Any]:
         """Şasi ağırlığını elle kaydeder veya siler."""
         return {"drone": drone_sozlugu(servis.sasi_agirligini_ayarla(kimlik, istek.agirlik_g))}
+
+    @rotalar.put("/dronelar/{kimlik}/hedefler")
+    def hedefleri_kaydet(kimlik: Kimlik, istek: HedefIstegi) -> dict[str, Any]:
+        """Drone hedeflerini (uçuş süresi, yük, bütçe) kaydeder."""
+        hedefler = DroneHedefleri(ucus_suresi_dk=istek.ucus_suresi_dk, yuk_g=istek.yuk_g, butce_tl=istek.butce_tl)
+        return hedef_sozlugu(servis.hedefleri_kaydet(kimlik, hedefler))
 
     return rotalar

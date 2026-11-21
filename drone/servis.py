@@ -10,12 +10,15 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from cekirdek.ayarlar import SASI_DOSYALARI_KLASOR_ADI, VERITABANI_DOSYA_ADI
+from cekirdek.birimler import BirimDonusturucu
 from cekirdek.hatalar import KayitBulunamadiHatasi
 from depolama.dosya_deposu import SasiDosyaDeposu
 from depolama.drone_deposu import DroneDeposu
+from depolama.hedef_deposu import HedefDeposu
 from depolama.sasi_kayit_deposu import SasiKayitDeposu
 from depolama.veritabani import Veritabani
 from drone.dogrulama import DroneGirdisiDogrulayici
+from drone.hedefler import DroneHedefleri
 from drone.modeller import BaslangicTuru, Drone, DroneTuru
 from sasi.birim_dogrulayici import BirimDogrulayici
 from sasi.modeller import BirimOnerisi, KayitliSasi, SasiGeometrisi, SasiOlculeri
@@ -49,6 +52,7 @@ class DroneServisi:
         veritabani = veritabani or Veritabani(veri_klasoru / VERITABANI_DOSYA_ADI)
         self._dronelar = DroneDeposu(veritabani)
         self._sasiler = SasiKayitDeposu(veritabani)
+        self._hedefler = HedefDeposu(veritabani)
         self._dosyalar = SasiDosyaDeposu(veri_klasoru / SASI_DOSYALARI_KLASOR_ADI)
         self._okuyucu_secici = OkuyucuSecici()
         self._birim_dogrulayici = BirimDogrulayici()
@@ -153,7 +157,7 @@ class DroneServisi:
         sasi = self._sasiler.getir(kimlik)
         if sasi is None:
             raise KayitBulunamadiHatasi("Bu drone için henüz şasi dosyası yüklenmedi.")
-        olculer = self._birim_dogrulayici.olculeri_mm_ye_cevir(sasi.geometri, birim.strip().lower())
+        olculer = self._birim_dogrulayici.olculeri_mm_ye_cevir(sasi.geometri, BirimDonusturucu.birimi_normallestir(birim))
         self._sasiler.olculeri_kaydet(kimlik, olculer)
         self._dronelar.guncellendi_olarak_isaretle(kimlik)
         return olculer
@@ -171,3 +175,17 @@ class DroneServisi:
         """
         self._dronelar.getir(kimlik)
         return self._dronelar.sasi_agirligini_ayarla(kimlik, self._girdi_dogrulayici.agirlik_dogrula(agirlik_g))
+
+    # ---------- Hedefler ----------
+
+    def hedefleri_kaydet(self, kimlik: int, hedefler: DroneHedefleri) -> DroneHedefleri:
+        """
+        Drone'un hedeflerini (uçuş süresi, yük, bütçe) kaydeder.
+
+        Hatalar:
+            KayitBulunamadiHatasi: Drone yoksa.
+        """
+        self._dronelar.getir(kimlik)
+        self._hedefler.kaydet(kimlik, hedefler)
+        self._dronelar.guncellendi_olarak_isaretle(kimlik)
+        return hedefler

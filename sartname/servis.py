@@ -15,13 +15,14 @@ from cekirdek.ayarlar import SARTNAME_DOSYALARI_KLASOR_ADI, VERITABANI_DOSYA_ADI
 from cekirdek.hatalar import GecersizDegerHatasi, YapayZekaHatasi
 from depolama.veritabani import Veritabani
 from elektronik.servis import ElektronikServisi
+from maliyet.hesap import GRUP_TOPLAM
 from maliyet.servis import MaliyetServisi
 from sartname.cikarim import SISTEM_TALIMATI, MaddeDonusturucu, istem_olustur, madde_semasi
 from sartname.depo import SartnameDeposu
 from sartname.kontrol import MaddeSonucu, SartnameBaglami, SartnameKontrolcusu
 from sartname.metin_cikarici import WORD_UZANTISI, SartnameMetinCikarici
 from sartname.sayfa_sayisi import SayfaSiniriDenetleyici
-from sartname.modeller import Buyukluk, Madde, MaddeSinifi, Sartname
+from sartname.modeller import Buyukluk, Madde, MaddeSinifi, Sartname, sartname_adini_dogrula
 
 
 @dataclass
@@ -99,8 +100,7 @@ class SartnameServisi:
         uzanti = self._metin.uzantiyi_denetle(dosya_adi)
         if drone_kimlik is not None:
             self._elektronik.drone_getir(drone_kimlik)
-        if not ad.strip():
-            raise GecersizDegerHatasi("Şartnameye bir ad verin (ör. yarışmanın adı ve yılı).")
+        ad = sartname_adini_dogrula(ad)
         if uzanti == WORD_UZANTISI:
             # Word belgesi bir zip arşividir; açılmadan önce zip bombasına karşı denetlenir.
             self._arsiv.denetle(gecici_yol)
@@ -226,7 +226,7 @@ class SartnameServisi:
         )
         # Maliyet yalnızca gerekiyorsa hesaplanır; yabancı fiyat varsa kur için internete çıkabilir.
         if any(m.buyukluk is Buyukluk.MALIYET for m in maddeler):
-            toplam = self._maliyet.ozet(drone_kimlik).ozet.toplamlar["toplam"]
+            toplam = self._maliyet.ozet(drone_kimlik).ozet.toplamlar[GRUP_TOPLAM]
             baglam.maliyet_tl = toplam.tl
             baglam.maliyet_eksik = toplam.eksik_kalem_sayisi > 0
             baglam.maliyet_tahmini = toplam.tahmini

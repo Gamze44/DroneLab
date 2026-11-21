@@ -15,6 +15,7 @@ import trimesh
 from trimesh.resolvers import Resolver
 
 from cekirdek.arsiv_denetimi import ArsivDenetleyici
+from cekirdek.birimler import BIRIM_CM, BIRIM_INC, BIRIM_M, BIRIM_MM
 from cekirdek.hatalar import DosyaOkumaHatasi
 from sasi.modeller import GeometriTuru, SasiGeometrisi
 from sasi.okuyucular.temel import SasiOkuyucu
@@ -27,18 +28,18 @@ gunluk = logging.getLogger(__name__)
 # trimesh'in döndürdüğü birim adları -> programın birim adları.
 # Listede olmayan birimler (ör. mikron) "birim yok" sayılır ve kullanıcıya sorulur.
 TRIMESH_BIRIMLERI: Final[dict[str, str]] = {
-    "mm": "mm",
-    "millimeter": "mm",
-    "millimeters": "mm",
-    "cm": "cm",
-    "centimeter": "cm",
-    "centimeters": "cm",
-    "m": "m",
-    "meter": "m",
-    "meters": "m",
-    "in": "inch",
-    "inch": "inch",
-    "inches": "inch",
+    "mm": BIRIM_MM,
+    "millimeter": BIRIM_MM,
+    "millimeters": BIRIM_MM,
+    "cm": BIRIM_CM,
+    "centimeter": BIRIM_CM,
+    "centimeters": BIRIM_CM,
+    "m": BIRIM_M,
+    "meter": BIRIM_M,
+    "meters": BIRIM_M,
+    "in": BIRIM_INC,
+    "inch": BIRIM_INC,
+    "inches": BIRIM_INC,
 }
 
 # trimesh'in gövde sayımı varsayılan olarak scipy ister; scipy büyük bir bağımlılık

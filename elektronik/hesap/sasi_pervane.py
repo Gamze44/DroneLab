@@ -10,13 +10,44 @@ Yöntem:
     3. En büyük pervane ≈ d − pervane uçları arası boşluk, inçe çevrilip aşağı yuvarlanır.
 """
 
+from dataclasses import dataclass
 import math
+from typing import Final
 
-from cekirdek.birimler import BirimDonusturucu
+from cekirdek.birimler import BIRIM_INC, BirimDonusturucu
 from elektronik.hesap.katsayilar import DINGIL_KATSAYISI, PERVANE_UC_BOSLUGU_MM, PERVANE_YUVARLAMA_ADIMI_INC
 from sasi.modeller import SasiOlculeri
 
-INC: str = "inch"
+# Kayan nokta hatası (ör. 4.9999) yuvarlamada bir adım aşağı düşürmesin diye eklenen pay.
+YUVARLAMA_PAYI: Final[float] = 1e-9
+# Sonuç inç cinsinden bu kadar ondalığa yuvarlanır (0,1 inç adımlarında gürültüyü atar).
+SONUC_BASAMAGI: Final[int] = 3
+
+
+@dataclass(frozen=True)
+class SasiGorunumu:
+    """
+    Şasinin üstten görünüş çizimi için ölçüler. Motor yerleri ve pervane sınırı tahminidir.
+
+    Alanlar:
+        en_mm, boy_mm: Şasinin dış ölçüsü, mm.
+        dingil_mm: Tahmini çapraz motor–motor mesafesi, mm.
+        en_buyuk_pervane_inc / _mm: Sığabilecek en büyük pervane; sığmıyorsa None.
+        pervane_cap_inc / _mm: Takılı (ilk) pervanenin çapı; pervane yoksa veya çapı girilmediyse None.
+    """
+
+    en_mm: float
+    boy_mm: float
+    dingil_mm: float
+    en_buyuk_pervane_inc: float | None
+    en_buyuk_pervane_mm: float | None
+    pervane_cap_inc: float | None
+    pervane_cap_mm: float | None
+
+
+def _inc_mm(deger_inc: float | None) -> float | None:
+    """İnçi mm'ye çevirir; None ise None."""
+    return None if deger_inc is None else BirimDonusturucu.uzunlugu_mm_ye_cevir(deger_inc, BIRIM_INC)
 
 
 class EnBuyukPervaneTahmincisi:
@@ -57,7 +88,28 @@ class EnBuyukPervaneTahmincisi:
         cap_mm = komsu_mm - self.uc_boslugu_mm
         if cap_mm <= 0:
             return None
-        cap_inc = BirimDonusturucu.mm_yi_uzunluga_cevir(cap_mm, INC)
-        # Kayan nokta hatası (ör. 4.9999) bir adım aşağı düşürmesin diye küçük pay eklenir.
-        adim_sayisi = math.floor(cap_inc / self.yuvarlama_adimi_inc + 1e-9)
-        return round(adim_sayisi * self.yuvarlama_adimi_inc, 3)
+        cap_inc = BirimDonusturucu.mm_yi_uzunluga_cevir(cap_mm, BIRIM_INC)
+        adim_sayisi = math.floor(cap_inc / self.yuvarlama_adimi_inc + YUVARLAMA_PAYI)
+        return round(adim_sayisi * self.yuvarlama_adimi_inc, SONUC_BASAMAGI)
+
+    def gorunum(self, olculer: SasiOlculeri, motor_sayisi: int, pervane_cap_inc: float | None) -> SasiGorunumu:
+        """
+        Üstten görünüş çizimi için gereken ölçüleri hesaplar (arayüz birim çevirmesin diye mm de verilir).
+
+        Parametreler:
+            olculer: Birim onaylanmış şasi ölçüleri, mm.
+            motor_sayisi: Motor sayısı.
+            pervane_cap_inc: Takılı pervanenin çapı, inç; yoksa None.
+        Dönüş:
+            SasiGorunumu.
+        """
+        en_buyuk = self.tahmin_et(olculer, motor_sayisi)
+        return SasiGorunumu(
+            en_mm=olculer.en_mm,
+            boy_mm=olculer.boy_mm,
+            dingil_mm=self.dingil_mesafesi_mm(olculer),
+            en_buyuk_pervane_inc=en_buyuk,
+            en_buyuk_pervane_mm=_inc_mm(en_buyuk),
+            pervane_cap_inc=pervane_cap_inc,
+            pervane_cap_mm=_inc_mm(pervane_cap_inc),
+        )

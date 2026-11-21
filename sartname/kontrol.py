@@ -17,7 +17,7 @@ from typing import Final
 from drone.hedefler import DroneHedefleri
 from elektronik.hesap.agirlik import AgirlikOzeti
 from elektronik.hesap.ucus import HesapDegeri, UcusOzeti
-from elektronik.hesap.uyum import sayi_yaz
+from cekirdek.bicim import sayi_yaz
 from elektronik.parcalar.cekirdek_parcalar import Pervane, Pil
 from elektronik.parcalar.diger_parca import DigerParca
 from elektronik.parcalar.parca import Parca

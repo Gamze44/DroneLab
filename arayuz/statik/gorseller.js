@@ -3,8 +3,11 @@
 // çizilir; özet her yenilendiğinde gorselleriCiz() çağrılır. Ek kütüphane yoktur (SVG).
 "use strict";
 
-const MM_INC = 25.4;
-const DURUM_SIRASI = ["uygunsuz", "uyari", "bilinmiyor", "uygun"];
+// DEĞİŞTİRİLEBİLİR: Görsel etiketlerindeki ondalık basamaklar (çizimde yer dar olduğu için az basamak).
+// Oran, süre, ağırlık ve yüzde basamakları elektronik.js'teki tablolarla aynı kalsın diye oradan gelir.
+const GORUNUM_MM_BASAMAK = 0;
+const GORUNUM_INC_BASAMAK = 1;
+const LEJANT_AGIRLIK_BASAMAK = 0;
 
 // DEĞİŞTİRİLEBİLİR: Ağırlık dağılımı renkleri (koyu zeminde birbirinden ayırt edilebilir).
 const AGIRLIK_RENKLERI = ["#4f8cff", "#22d3ee", "#a78bfa", "#f472b6", "#fbbf24", "#34d399", "#fb923c", "#e879f9", "#60a5fa", "#94a3b8", "#cbd5e1"];
@@ -17,18 +20,11 @@ const GAZ_BOLGELERI = [
 ];
 
 function enKotuDurum(durumlar) {
-  return DURUM_SIRASI.find((d) => durumlar.includes(d)) || "bilinmiyor";
+  return UYUM_DURUM_SIRASI.find((d) => durumlar.includes(d)) || "bilinmiyor";
 }
 
 function uyumSonucu(kod) {
   return elektronikOzeti.uyum.find((u) => u.kod === kod);
-}
-
-function bosMesaj(kap, metin) {
-  const p = document.createElement("p");
-  p.className = "soluk";
-  p.textContent = metin;
-  kap.replaceChildren(p);
 }
 
 function gorselleriCiz() {
@@ -50,10 +46,10 @@ function sasiGorunumunuCiz() {
   }
   const n = elektronikOzeti.motor_sayisi;
   const R = g.dingil_mm / 2;
-  const pervane = elektronikOzeti.kalemler.find((k) => k.parca.tur === "pervane");
-  const pervaneInc = pervane ? pervane.parca.teknik.cap_inc : null;
-  const pervaneR = pervaneInc ? (pervaneInc * MM_INC) / 2 : 0;
-  const sinirR = g.en_buyuk_pervane_inc ? (g.en_buyuk_pervane_inc * MM_INC) / 2 : 0;
+  // İnç → mm dönüşümü sunucuda yapılır; inç değerleri yalnızca etikette gösterilir.
+  const pervaneInc = g.pervane_cap_inc;
+  const pervaneR = g.pervane_cap_mm ? g.pervane_cap_mm / 2 : 0;
+  const sinirR = g.en_buyuk_pervane_mm ? g.en_buyuk_pervane_mm / 2 : 0;
   const k5 = uyumSonucu("K5");
   const durum = pervaneInc ? (k5 ? k5.durum : "bilinmiyor") : "bilinmiyor";
 
@@ -69,7 +65,7 @@ function sasiGorunumunuCiz() {
   // Motorlar bir çember üzerinde eşit aralıklı kabul edilir (X düzeni: ilk kol öne-sağa).
   const motorlar = [];
   for (let i = 0; i < n; i++) {
-    const aci = ((360 / n) * i + 180 / n - 90) * (Math.PI / 180);
+    const aci = motorAcisi(i, n);
     motorlar.push([R * Math.cos(aci), R * Math.sin(aci)]);
   }
   for (const [x, y] of motorlar) {
@@ -97,9 +93,10 @@ function sasiGorunumunuCiz() {
   }, svgOge("title", {}, "Ön")));
 
   const satirlar = [
-    `Dış ölçü ${sayiBicimle(g.en_mm, 0)} × ${sayiBicimle(g.boy_mm, 0)} mm · dingil ≈ ${sayiBicimle(g.dingil_mm, 0)} mm`,
-    (g.en_buyuk_pervane_inc ? `Sığabilecek en büyük pervane ≈ ${sayiBicimle(g.en_buyuk_pervane_inc, 1)} inç` : "Şasi pervane için çok küçük görünüyor") +
-      (pervaneInc ? ` · takılı ${sayiBicimle(pervaneInc, 1)} inç` : " · pervane eklenmedi"),
+    `Dış ölçü ${sayiBicimle(g.en_mm, GORUNUM_MM_BASAMAK)} × ${sayiBicimle(g.boy_mm, GORUNUM_MM_BASAMAK)} mm · ` +
+      `dingil ≈ ${sayiBicimle(g.dingil_mm, GORUNUM_MM_BASAMAK)} mm`,
+    (g.en_buyuk_pervane_inc ? `Sığabilecek en büyük pervane ≈ ${sayiBicimle(g.en_buyuk_pervane_inc, GORUNUM_INC_BASAMAK)} inç` : "Şasi pervane için çok küçük görünüyor") +
+      (pervaneInc ? ` · takılı ${sayiBicimle(pervaneInc, GORUNUM_INC_BASAMAK)} inç` : " · pervane eklenmedi"),
   ];
   satirlar.forEach((s, i) => svg.append(svgOge("text", {
     x: 0, y: yari + yazi * (1.2 + i * 1.3), "text-anchor": "middle", style: `font-size:${yazi}px`,
@@ -117,10 +114,7 @@ function cubukGosterge(baslik, h, birim, basamak, hedef, aciklamaEk = "") {
   b.textContent = baslik;
   kap.append(b);
   if (h.deger == null) {
-    const p = document.createElement("p");
-    p.className = "soluk";
-    p.textContent = `Hesaplanamadı – ${h.aciklama}`;
-    kap.append(p);
+    kap.append(ogeOlustur("p", "soluk", hesaplanamadiMetni(h, true)));
     return kap;
   }
   const enFazla = Math.max(hedef ? hedef * 1.5 : 0, h.deger * 1.15, 1e-9);
@@ -129,8 +123,7 @@ function cubukGosterge(baslik, h, birim, basamak, hedef, aciklamaEk = "") {
   const G = 300;
   // Geniş ekranda yazı aşırı büyümesin diye çubuğun genişliği sınırlanır.
   const svg = svgOge("svg", { viewBox: `0 0 ${G} 74`, class: "gorsel", style: "max-width:420px" });
-  svg.append(svgOge("text", { x: 0, y: 24, class: "koyu-metin", style: "font-size:22px" },
-    `${sayiBicimle(h.deger, basamak)}${birim}${h.tahmini ? " (tahmini)" : ""}`));
+  svg.append(svgOge("text", { x: 0, y: 24, class: "koyu-metin", style: "font-size:22px" }, hesapMetni(h, birim, basamak)));
   svg.append(svgOge("rect", { x: 0, y: 36, width: G, height: 14, rx: 7, fill: "var(--giris-arka)", stroke: "var(--cizgi)" }));
   svg.append(svgOge("rect", { x: 0, y: 36, width: Math.max(4, (h.deger / enFazla) * G), height: 14, rx: 7, class: sinif }));
   if (hedef != null) {
@@ -150,10 +143,7 @@ function yayGosterge(baslik, h) {
   b.textContent = baslik;
   kap.append(b);
   if (h.deger == null) {
-    const p = document.createElement("p");
-    p.className = "soluk";
-    p.textContent = `Hesaplanamadı – ${h.aciklama}`;
-    kap.append(p);
+    kap.append(ogeOlustur("p", "soluk", hesaplanamadiMetni(h, true)));
     return kap;
   }
   const cx = 100, cy = 100, r = 80;
@@ -177,7 +167,7 @@ function yayGosterge(baslik, h) {
   svg.append(svgOge("line", { x1: cx, y1: cy, x2: ix, y2: iy, stroke: "var(--yazi)", "stroke-width": 3, "stroke-linecap": "round" }));
   svg.append(svgOge("circle", { cx, cy, r: 6, fill: "var(--yazi)" }));
   svg.append(svgOge("text", { x: cx, y: 122, "text-anchor": "middle", class: "koyu-metin", style: "font-size:18px" },
-    `%${sayiBicimle(h.deger, 0)}${h.tahmini ? " (tahmini)" : ""}`));
+    `%${hesapMetni(h, "", YUZDE_BASAMAK)}`));
   kap.append(svgIpucu(svg, `${h.aciklama}. Yeşil: rahat (≤%50), sarı: yüklü, kırmızı: motorlar zorlanır.`));
   return kap;
 }
@@ -185,8 +175,8 @@ function yayGosterge(baslik, h) {
 function ucusGostergeleriniCiz() {
   const u = elektronikOzeti.ucus;
   $("ucus-gostergeleri").replaceChildren(
-    cubukGosterge("İtki / ağırlık", u.itki_agirlik_orani, "", 1, u.hedef_itki_agirlik, " · hedef kullanım amacına göre"),
-    cubukGosterge("Uçuş süresi", u.ucus_suresi_dk, " dk", 1, u.hedef_ucus_suresi_dk),
+    cubukGosterge("İtki / ağırlık", u.itki_agirlik_orani, "", ORAN_BASAMAK, u.hedef_itki_agirlik, " · hedef kullanım amacına göre"),
+    cubukGosterge("Uçuş süresi", u.ucus_suresi_dk, " dk", SURE_BASAMAK, u.hedef_ucus_suresi_dk),
     yayGosterge("Asılı kalma gazı", u.asili_gaz_yuzde),
   );
 }
@@ -219,17 +209,17 @@ function agirlikDagiliminiCiz() {
   [...gruplar.entries()].forEach(([ad, g], i) => {
     const renk = AGIRLIK_RENKLERI[i % AGIRLIK_RENKLERI.length];
     const w = (g / toplam) * G;
-    const yuzde = sayiBicimle((g / toplam) * 100, 0);
-    svg.append(svgIpucu(svgOge("rect", { x, y: 0, width: Math.max(w - 1.5, 0.5), height: 30, rx: 3, fill: renk }), `${ad}: ${sayiBicimle(g, 1)} g (%${yuzde})`));
+    const yuzde = sayiBicimle((g / toplam) * 100, YUZDE_BASAMAK);
+    svg.append(svgIpucu(svgOge("rect", { x, y: 0, width: Math.max(w - 1.5, 0.5), height: 30, rx: 3, fill: renk }), `${ad}: ${sayiBicimle(g, AGIRLIK_BASAMAK)} g (%${yuzde})`));
     x += w;
     const s = document.createElement("span");
     s.style.setProperty("--renk", renk);
-    s.textContent = `${ad} ${sayiBicimle(g, 0)} g (%${yuzde})`;
+    s.textContent = `${ad} ${sayiBicimle(g, LEJANT_AGIRLIK_BASAMAK)} g (%${yuzde})`;
     lejant.append(s);
   });
   const not = document.createElement("p");
   not.className = "soluk";
-  not.textContent = `Toplam ${sayiBicimle(toplam, 1)} g` +
+  not.textContent = `Toplam ${sayiBicimle(toplam, AGIRLIK_BASAMAK)} g` +
     (a.agirligi_eksik_parcalar.length ? ` · ağırlığı girilmemiş: ${a.agirligi_eksik_parcalar.join(", ")}` : "");
   kap.replaceChildren(svg, lejant, not);
 }

@@ -165,6 +165,30 @@ class Madde:
             raise GecersizDegerHatasi(f"'{tanim.ad}' maddesi için sınır değeri girilmeli.")
 
 
+# DEĞİŞTİRİLEBİLİR: Şartname adının en çok karakter sayısı.
+EN_UZUN_SARTNAME_ADI: Final[int] = 200
+SARTNAME_ADI_BOS_MESAJI: Final[str] = "Şartnameye bir ad verin (ör. yarışmanın adı ve yılı)."
+
+
+def sartname_adini_dogrula(ad: str) -> str:
+    """
+    Şartname adını denetler ve kırpar.
+
+    Parametreler:
+        ad: Kullanıcının yazdığı ad.
+    Dönüş:
+        Baştaki/sondaki boşlukları silinmiş ad.
+    Hatalar:
+        GecersizDegerHatasi: Ad boşsa veya çok uzunsa.
+    """
+    temiz = ad.strip()
+    if not temiz:
+        raise GecersizDegerHatasi(SARTNAME_ADI_BOS_MESAJI)
+    if len(temiz) > EN_UZUN_SARTNAME_ADI:
+        raise GecersizDegerHatasi(f"Şartname adı en çok {EN_UZUN_SARTNAME_ADI} karakter olabilir.")
+    return temiz
+
+
 @dataclass
 class Sartname:
     """

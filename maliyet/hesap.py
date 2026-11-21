@@ -20,6 +20,27 @@ GRUP_TOPLAM: Final[str] = "toplam"
 GRUP_ALINACAK: Final[str] = "alinacak"
 GRUP_ELIMDE: Final[str] = "elimde"
 
+# Kalemin neden hesaplanamadığının kodu; arayüz ekran metnine değil bu koda bakar.
+EKSIK_FIYAT_YOK: Final[str] = "fiyat_yok"
+EKSIK_KUR_YOK: Final[str] = "kur_yok"
+FIYAT_YOK_MESAJI: Final[str] = "fiyat girilmemiş"
+
+
+@dataclass(frozen=True)
+class KalemKaynagi:
+    """
+    Kalemin dronedaki karşılığı (arayüz fiyatı doğru parçaya kaydedebilsin diye).
+
+    Alanlar:
+        parca_kimlik: Katalogdaki parça.
+        bag_kimlik: Drone–parça bağı.
+        durum: Parçanın bu dronedaki durumu.
+    """
+
+    parca_kimlik: int
+    bag_kimlik: int
+    durum: ParcaDurumu
+
 
 @dataclass(frozen=True)
 class MaliyetGirdisi:
@@ -31,12 +52,14 @@ class MaliyetGirdisi:
         adet: Adet.
         elimde: Kalem zaten elde mi.
         fiyat: Birim fiyat; girilmediyse None.
+        kaynak: Parçanın dronedaki karşılığı; şasi için None.
     """
 
     ad: str
     adet: int
     elimde: bool
     fiyat: Fiyat | None
+    kaynak: KalemKaynagi | None = None
 
 
 @dataclass(frozen=True)
@@ -45,10 +68,11 @@ class MaliyetKalemi:
     Hesaplanmış kalem.
 
     Alanlar:
-        ad, adet, elimde, fiyat: Girdiyle aynı.
+        ad, adet, elimde, fiyat, kaynak: Girdiyle aynı.
         tl_tutar: adet × birim fiyat × kur; hesaplanamadıysa None.
         tahmini: Kurla çevrildiyse True.
-        eksik: Hesaplanamadıysa nedeni.
+        eksik: Hesaplanamadıysa nedeni (ekranda gösterilir).
+        eksik_kodu: Hesaplanamadıysa EKSIK_FIYAT_YOK veya EKSIK_KUR_YOK.
     """
 
     ad: str
@@ -58,6 +82,8 @@ class MaliyetKalemi:
     tl_tutar: float | None
     tahmini: bool = False
     eksik: str | None = None
+    eksik_kodu: str | None = None
+    kaynak: KalemKaynagi | None = None
 
 
 @dataclass
@@ -125,10 +151,17 @@ class MaliyetHesaplayici:
     def _kalem(g: MaliyetGirdisi, kurlar: dict[str, Kur]) -> MaliyetKalemi:
         """Tek kalemin TL tutarı."""
         if g.fiyat is None:
-            return MaliyetKalemi(g.ad, g.adet, g.elimde, None, None, eksik="fiyat girilmemiş")
+            return MaliyetKalemi(
+                g.ad, g.adet, g.elimde, None, None, eksik=FIYAT_YOK_MESAJI, eksik_kodu=EKSIK_FIYAT_YOK, kaynak=g.kaynak
+            )
         if g.fiyat.para_birimi == TL:
-            return MaliyetKalemi(g.ad, g.adet, g.elimde, g.fiyat, g.fiyat.tutar * g.adet)
+            return MaliyetKalemi(g.ad, g.adet, g.elimde, g.fiyat, g.fiyat.tutar * g.adet, kaynak=g.kaynak)
         kur = kurlar.get(g.fiyat.para_birimi)
         if kur is None:
-            return MaliyetKalemi(g.ad, g.adet, g.elimde, g.fiyat, None, eksik=f"{g.fiyat.para_birimi} kuru alınamadı")
-        return MaliyetKalemi(g.ad, g.adet, g.elimde, g.fiyat, g.fiyat.tutar * g.adet * kur.tl_karsiligi, tahmini=True)
+            return MaliyetKalemi(
+                g.ad, g.adet, g.elimde, g.fiyat, None,
+                eksik=f"{g.fiyat.para_birimi} kuru alınamadı", eksik_kodu=EKSIK_KUR_YOK, kaynak=g.kaynak,
+            )
+        return MaliyetKalemi(
+            g.ad, g.adet, g.elimde, g.fiyat, g.fiyat.tutar * g.adet * kur.tl_karsiligi, tahmini=True, kaynak=g.kaynak
+        )

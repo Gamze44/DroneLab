@@ -8,7 +8,7 @@ ve değer tahmin edilmez.
 """
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Final, TypeVar
 
@@ -139,13 +139,6 @@ def birlestir(kod: str, baslik: str, ara_sonuclar: list[AraSonuc], tahmini: bool
     )
 
 
-def sayi_yaz(deger: float | None) -> str:
-    """Sayıyı Türkçe biçimde kısa yazar (30.5 → "30,5", 4.0 → "4"); None → "?"."""
-    if deger is None:
-        return "?"
-    return f"{deger:.2f}".rstrip("0").rstrip(".").replace(".", ",")
-
-
 def aralik_durumu(deger: float | None, alt: float | None, ust: float | None) -> UyumDurumu:
     """
     Değerin [alt, ust] aralığında olup olmadığı.
@@ -160,11 +153,6 @@ def aralik_durumu(deger: float | None, alt: float | None, ust: float | None) -> 
     if alt is None or ust is None:
         return UyumDurumu.BILINMIYOR
     return UyumDurumu.UYGUN
-
-
-def metni_karsilastirmaya_hazirla(metin: str) -> str:
-    """Protokol/konnektör adlarını karşılaştırma için sadeleştirir ("DShot-600" → "dshot600")."""
-    return "".join(ch for ch in metin.lower() if ch.isalnum())
 
 
 class UyumKontrolu(ABC):

@@ -12,19 +12,35 @@ from typing import Final
 
 from cekirdek.hatalar import BirimHatasi, GecersizDegerHatasi
 
+# Birim adları; kodda yazım hatası olmasın diye metin yerine bu sabitler kullanılır.
+BIRIM_MM: Final[str] = "mm"
+BIRIM_CM: Final[str] = "cm"
+BIRIM_M: Final[str] = "m"
+BIRIM_INC: Final[str] = "inch"
+BIRIM_G: Final[str] = "g"
+BIRIM_KG: Final[str] = "kg"
+
 # DEĞİŞTİRİLEBİLİR: Yeni bir uzunluk birimi eklemek için 1 biriminin kaç mm olduğunu yaz.
 UZUNLUK_CARPANLARI_MM: Final[dict[str, float]] = {
-    "mm": 1.0,
-    "cm": 10.0,
-    "m": 1000.0,
-    "inch": 25.4,
+    BIRIM_MM: 1.0,
+    BIRIM_CM: 10.0,
+    BIRIM_M: 1000.0,
+    BIRIM_INC: 25.4,
 }
 
 # DEĞİŞTİRİLEBİLİR: 1 biriminin kaç gram olduğu.
 KUTLE_CARPANLARI_G: Final[dict[str, float]] = {
-    "g": 1.0,
-    "kg": 1000.0,
+    BIRIM_G: 1.0,
+    BIRIM_KG: 1000.0,
 }
+
+# Fiziksel sabitler ve zaman/elektrik dönüşümleri (hesap modüllerinde elle çarpılmasın diye).
+YERCEKIMI_M_S2: Final[float] = 9.80665  # standart yerçekimi ivmesi
+MAH_BIR_AH: Final[float] = 1000.0
+DAKIKA_BIR_SAAT: Final[float] = 60.0
+SANIYE_BIR_DAKIKA: Final[float] = 60.0
+# Dosya boyutları: 1 MB = 1024 × 1024 bayt.
+BAYT_BIR_MB: Final[int] = 1024 * 1024
 
 # DEĞİŞTİRİLEBİLİR: 1 biriminin kaç g/cm3 olduğu.
 YOGUNLUK_CARPANLARI_G_CM3: Final[dict[str, float]] = {
@@ -45,7 +61,7 @@ class BirimDonusturucu:
     """
 
     @staticmethod
-    def _birimi_normallestir(birim: str) -> str:
+    def birimi_normallestir(birim: str) -> str:
         """
         Birim adını karşılaştırma için sadeleştirir (boşluk ve büyük harf farkı yok sayılır).
 
@@ -69,7 +85,7 @@ class BirimDonusturucu:
         Hatalar:
             BirimHatasi: Birim tabloda yoksa.
         """
-        anahtar = cls._birimi_normallestir(birim)
+        anahtar = cls.birimi_normallestir(birim)
         if anahtar not in carpanlar:
             raise BirimHatasi(birim, carpanlar.keys())
         return carpanlar[anahtar]
@@ -265,3 +281,83 @@ class BirimDonusturucu:
         """
         cls._negatif_olmayani_denetle(deger, "yoğunluk")
         return deger * cls._carpani_bul(birim, YOGUNLUK_CARPANLARI_G_CM3)
+
+    @classmethod
+    def mm2_yi_cm2_ye_cevir(cls, alan_mm2: float) -> float:
+        """
+        mm2 cinsinden alanı cm2'ye çevirir (ekranda gösterim için).
+
+        Parametreler:
+            alan_mm2: Alan, mm2.
+        Dönüş:
+            Alan, cm2.
+        """
+        cls._negatif_olmayani_denetle(alan_mm2, "alan")
+        return alan_mm2 / cls.alan_carpani(BIRIM_CM)
+
+    # ---------- Kuvvet (itki) ----------
+
+    @classmethod
+    def gram_kuvvetini_newtona_cevir(cls, itki_g: float) -> float:
+        """
+        Gram-kuvveti (itki tablolarındaki "g") newtona çevirir.
+
+        Parametreler:
+            itki_g: İtki, gram-kuvvet.
+        Dönüş:
+            Kuvvet, N.
+        """
+        return cls.grami_kutleye_cevir(itki_g, BIRIM_KG) * YERCEKIMI_M_S2
+
+    @classmethod
+    def newtonu_gram_kuvvetine_cevir(cls, kuvvet_n: float) -> float:
+        """
+        Newtonu gram-kuvvete çevirir.
+
+        Parametreler:
+            kuvvet_n: Kuvvet, N.
+        Dönüş:
+            İtki, gram-kuvvet.
+        """
+        return cls.kutleyi_grama_cevir(kuvvet_n / YERCEKIMI_M_S2, BIRIM_KG)
+
+    # ---------- Elektrik ve zaman ----------
+
+    @classmethod
+    def mah_i_ah_a_cevir(cls, kapasite_mah: float) -> float:
+        """
+        Pil kapasitesini mAh'den Ah'ye çevirir.
+
+        Parametreler:
+            kapasite_mah: Kapasite, mAh.
+        Dönüş:
+            Kapasite, Ah.
+        """
+        cls._negatif_olmayani_denetle(kapasite_mah, "kapasite")
+        return kapasite_mah / MAH_BIR_AH
+
+    @classmethod
+    def saati_dakikaya_cevir(cls, sure_saat: float) -> float:
+        """
+        Süreyi saatten dakikaya çevirir.
+
+        Parametreler:
+            sure_saat: Süre, saat.
+        Dönüş:
+            Süre, dakika.
+        """
+        cls._sonlu_mu_denetle(sure_saat, "süre")
+        return sure_saat * DAKIKA_BIR_SAAT
+
+    @classmethod
+    def dakika_basinadan_saniye_basinaya_cevir(cls, deger_dakika_basina: float) -> float:
+        """
+        Dakikadaki miktarı saniyedekine çevirir (ör. devir/dk → devir/sn).
+
+        Parametreler:
+            deger_dakika_basina: Dakika başına değer.
+        Dönüş:
+            Saniye başına değer.
+        """
+        cls._sonlu_mu_denetle(deger_dakika_basina, "hız")
+        return deger_dakika_basina / SANIYE_BIR_DAKIKA

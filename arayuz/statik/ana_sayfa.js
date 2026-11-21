@@ -8,21 +8,10 @@ const BASLIKLAR = {
 
 let secilenBaslangic = null;
 
-function seceneklereDoldur(seciciKimligi, secenekler) {
-  const secici = $(seciciKimligi);
-  secici.replaceChildren();
-  for (const { deger, ad } of secenekler) {
-    const s = document.createElement("option");
-    s.value = deger;
-    s.textContent = ad;
-    secici.append(s);
-  }
-}
-
 async function formSecenekleriniYukle() {
   const s = await istekGonder("/api/secenekler");
-  seceneklereDoldur("drone-turu", s.drone_turleri);
-  seceneklereDoldur("drone-amaci", s.amaclar.map((a) => ({ deger: a, ad: a })));
+  seceneklereYaz("drone-turu", s.drone_turleri);
+  seceneklereYaz("drone-amaci", s.amaclar.map((a) => ({ deger: a, ad: a })));
   // Önceden yüklenmiş şartnameler "yeni yükle" seçeneğinin altına eklenir.
   const sartnameler = await istekGonder("/api/sartnameler");
   const secici = $("drone-sartname");

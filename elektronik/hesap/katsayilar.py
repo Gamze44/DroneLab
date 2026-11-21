@@ -113,8 +113,6 @@ PERVANE_VERIM_KATSAYISI: Final[float] = 0.65
 # DEĞİŞTİRİLEBİLİR: Motor + ESC birlikte verimi.
 MOTOR_ESC_VERIMI: Final[float] = 0.80
 
-# Fizik ve birim sabitleri (değiştirilmez). Uzunluk ve kütle dönüşümleri cekirdek/birimler.py'dedir.
-YERCEKIMI_M_S2: Final[float] = 9.80665
-SANIYE_DAKIKA: Final[float] = 60.0
-MAH_AH: Final[float] = 1000.0
+# Yüzde gösterimi için çarpan. Fizik sabitleri ve birim dönüşümleri (yerçekimi, mAh→Ah,
+# saat→dakika, gram-kuvvet→newton) cekirdek/birimler.py'dedir.
 YUZDE: Final[float] = 100.0

@@ -1,13 +1,8 @@
 """
-Yapay zeka önerisi ve ayarlarının API uçları.
+Yapay zeka önerisinin API uçları (ayarların uçları: ayar_rotalari.py).
 
     POST   /api/dronelar/{kimlik}/oneriler        -> Gemini'den aday iste ve değerlendir
     POST   /api/dronelar/{kimlik}/oneriler/sec    -> seçilen adayı drone'a "önerilen" olarak ekle
-    GET    /api/ayarlar/yapay-zeka                -> anahtar var/yok, model, günlük sınır, kullanım
-    PUT    /api/ayarlar/yapay-zeka                -> model / sınır / anahtar değiştir
-    DELETE /api/ayarlar/yapay-zeka/anahtar        -> anahtar dosyasını sil
-
-Anahtar hiçbir yanıtta döndürülmez.
 """
 
 from typing import Any
@@ -15,9 +10,7 @@ from typing import Any
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from arastirma.ayarlar import EN_BUYUK_GUNLUK_SINIR
-from arastirma.gemini import MODELLER
-from arayuz.elektronik_rotalari import ParcaBilgisi, bag_sozlugu, hesap_degeri_sozlugu, parca_sozlugu, uyum_sozlugu
+from arayuz.elektronik_sozlukleri import ParcaBilgisi, bag_sozlugu, hesap_degeri_sozlugu, parca_sozlugu, uyum_sozlugu
 from arayuz.parametreler import GovdeKimligi, Kimlik
 from elektronik.oneri.servis import OneriAdayi, OneriServisi
 from elektronik.parcalar.turler import DigerAltTur, ParcaTuru
@@ -36,14 +29,6 @@ class OneriSecimi(BaseModel):
     parca: ParcaBilgisi | None = None
     parca_kimlik: GovdeKimligi | None = None
     adet: int = 1
-
-
-class AyarGuncelleme(BaseModel):
-    """Verilmeyen alan değişmez. Anahtar yalnızca yazılır, asla geri okunmaz."""
-
-    model: str | None = None
-    gunluk_sinir: int | None = None
-    anahtar: str | None = None
 
 
 def aday_sozlugu(a: OneriAdayi) -> dict[str, Any]:
@@ -67,7 +52,7 @@ def aday_sozlugu(a: OneriAdayi) -> dict[str, Any]:
 
 def oneri_rotalarini_olustur(servis: OneriServisi) -> APIRouter:
     """
-    Öneri ve yapay zeka ayarı uçlarını oluşturur.
+    Öneri uçlarını oluşturur.
 
     Parametreler:
         servis: OneriServisi.
@@ -100,21 +85,5 @@ def oneri_rotalarini_olustur(servis: OneriServisi) -> APIRouter:
             teknik=bilgi.teknik if bilgi else None,
         )
         return bag_sozlugu(bag)
-
-    @rotalar.get("/ayarlar/yapay-zeka")
-    def ayarlar() -> dict[str, Any]:
-        """Yapay zeka ayarları (anahtarın kendisi yok)."""
-        return {**servis.ayar_durumu(), "modeller": list(MODELLER), "en_buyuk_gunluk_sinir": EN_BUYUK_GUNLUK_SINIR}
-
-    @rotalar.put("/ayarlar/yapay-zeka")
-    def ayarlari_guncelle(istek: AyarGuncelleme) -> dict[str, Any]:
-        """Ayarları değiştirir."""
-        durum = servis.ayarlari_guncelle(istek.model, istek.gunluk_sinir, istek.anahtar)
-        return {**durum, "modeller": list(MODELLER), "en_buyuk_gunluk_sinir": EN_BUYUK_GUNLUK_SINIR}
-
-    @rotalar.delete("/ayarlar/yapay-zeka/anahtar")
-    def anahtari_sil() -> dict[str, Any]:
-        """Anahtar dosyasını siler."""
-        return {**servis.anahtari_sil(), "modeller": list(MODELLER), "en_buyuk_gunluk_sinir": EN_BUYUK_GUNLUK_SINIR}
 
     return rotalar

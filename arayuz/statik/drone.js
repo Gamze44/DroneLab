@@ -6,16 +6,22 @@ const droneKimligi = Number((window.location.pathname.match(/\/drone\/(\d+)/) ||
 // Programın adı sayfaya sunucu tarafından yazılır (cekirdek/ayarlar.py → PROGRAM_ADI).
 const programAdi = document.querySelector('meta[name="program-adi"]').content;
 
+let mevcutDrone = null; // sunucudan gelen son drone bilgisi; diğer sekmeler ekrandaki metni ayrıştırmasın diye
+
+// Drone'un kısa tanımı: "tür · amaç · başlangıç". Başlıkta ve Hedefler sekmesinde aynı görünsün diye tek yerde.
+function droneTanimi(drone) {
+  return `${drone.drone_turu_adi} · ${drone.amac} · ${drone.baslangic_turu_adi}`;
+}
+
 // Drone bilgisi değiştiğinde (ör. ağırlık kaydedildi) başlık ve elektronik özeti yenilenir.
 function droneGuncellendi(drone) {
+  mevcutDrone = drone;
   document.title = `${drone.ad} – ${programAdi}`;
   $("drone-adi").textContent = drone.ad;
   $("drone-kayit-no").textContent =
     `// KAYIT #${String(drone.kimlik).padStart(4, "0")} · ${drone.motor_sayisi} ROTOR · ${drone.drone_turu.toUpperCase()}`;
   $("drone-cizimi").replaceChildren(droneCizimi("", drone.motor_sayisi));
-  $("drone-ozet").textContent =
-    `${drone.drone_turu_adi} · ${drone.amac} · ${drone.baslangic_turu_adi} · ` +
-    `son değişiklik ${zamanBicimle(drone.guncelleme_zamani)}`;
+  $("drone-ozet").textContent = `${droneTanimi(drone)} · son değişiklik ${zamanBicimle(drone.guncelleme_zamani)}`;
 
   const agirlikMetni = drone.sasi_agirlik_g != null ? `${sayiBicimle(drone.sasi_agirlik_g, 1)} g` : "girilmedi";
   $("kayitli-agirlik").textContent = agirlikMetni;

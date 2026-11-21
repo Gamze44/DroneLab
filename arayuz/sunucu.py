@@ -7,6 +7,7 @@ döndürülür; böylece her uçta ayrı hata yakalama yazmak gerekmez.
 """
 
 from collections.abc import Callable
+from http import HTTPStatus
 import logging
 from pathlib import Path
 from typing import Final
@@ -16,6 +17,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from arastirma.ayar_servisi import YapayZekaAyarServisi
+from arayuz.ayar_rotalari import ayar_rotalarini_olustur
 from arayuz.drone_rotalari import drone_rotalarini_olustur
 from arayuz.elektronik_rotalari import elektronik_rotalarini_olustur
 from arayuz.parametreler import Kimlik
@@ -73,13 +76,6 @@ SAYFA_YER_TUTUCULARI: Final[dict[str, str]] = {
     "{{SARTNAME_SAYFA_SINIRI}}": str(EN_FAZLA_SARTNAME_SAYFASI),
 }
 
-HTTP_HATALI_ISTEK: Final[int] = 400
-HTTP_BULUNAMADI: Final[int] = 404
-HTTP_CAKISMA: Final[int] = 409
-HTTP_DESTEKLENMEYEN_TUR: Final[int] = 415
-HTTP_ISLENEMEYEN_ISTEK: Final[int] = 422
-HTTP_SUNUCU_HATASI: Final[int] = 500
-
 BEKLENMEYEN_HATA_MESAJI: Final[str] = (
     "Beklenmeyen bir hata oluştu. Lütfen işlemi tekrar deneyin; sorun sürerse "
     "program penceresindeki hata kaydını kontrol edin."
@@ -99,17 +95,17 @@ def _hata_yakalayicilari_ekle(sunucu: FastAPI) -> None:
     @sunucu.exception_handler(DroneProgramHatasi)
     def program_hatasi(_: Request, hata: DroneProgramHatasi) -> JSONResponse:
         govde: dict[str, object] = {"hata": hata.mesaj}
-        kod = HTTP_HATALI_ISTEK
+        kod: int = HTTPStatus.BAD_REQUEST
         if isinstance(hata, KayitBulunamadiHatasi):
-            kod = HTTP_BULUNAMADI
+            kod = HTTPStatus.NOT_FOUND
         elif isinstance(hata, KayitZatenVarHatasi):
             # Arayüz mevcut kaydı önerebilsin diye kimliği de gönderilir.
-            kod = HTTP_CAKISMA
+            kod = HTTPStatus.CONFLICT
             govde["mevcut_kimlik"] = hata.mevcut_kimlik
         elif isinstance(hata, YapayZekaHatasi):
             kod = hata.http_kodu
         elif isinstance(hata, DesteklenmeyenDosyaHatasi):
-            kod = HTTP_DESTEKLENMEYEN_TUR
+            kod = HTTPStatus.UNSUPPORTED_MEDIA_TYPE
             if hata.rehber:
                 govde["rehber"] = hata.rehber
         return JSONResponse(status_code=kod, content=govde)
@@ -118,13 +114,13 @@ def _hata_yakalayicilari_ekle(sunucu: FastAPI) -> None:
     def gecersiz_istek(_: Request, hata: RequestValidationError) -> JSONResponse:
         # FastAPI'nin İngilizce doğrulama mesajları kullanıcıya gösterilmez; ayrıntı konsola yazılır.
         gunluk.warning("Geçersiz istek: %s", hata.errors())
-        return JSONResponse(status_code=HTTP_ISLENEMEYEN_ISTEK, content={"hata": GECERSIZ_ISTEK_MESAJI})
+        return JSONResponse(status_code=HTTPStatus.UNPROCESSABLE_ENTITY, content={"hata": GECERSIZ_ISTEK_MESAJI})
 
     @sunucu.exception_handler(Exception)
     def beklenmeyen_hata(_: Request, hata: Exception) -> JSONResponse:
         # Ayrıntı kullanıcıya değil konsola yazılır; kullanıcı sade mesaj görür.
         gunluk.exception("Beklenmeyen hata: %s", hata)
-        return JSONResponse(status_code=HTTP_SUNUCU_HATASI, content={"hata": BEKLENMEYEN_HATA_MESAJI})
+        return JSONResponse(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, content={"hata": BEKLENMEYEN_HATA_MESAJI})
 
 
 def sayfa_yaniti(dosya_adi: str) -> HTMLResponse:
@@ -197,6 +193,9 @@ def sunucu_olustur(
     sunucu.include_router(drone_rotalarini_olustur(DroneServisi(veri_klasoru, veritabani)))
     sunucu.include_router(elektronik_rotalarini_olustur(elektronik))
     sunucu.include_router(oneri_rotalarini_olustur(OneriServisi(elektronik, yapay_zeka, sartname.oneri_maddeleri)))
+    sunucu.include_router(
+        ayar_rotalarini_olustur(YapayZekaAyarServisi(yapay_zeka.anahtar, yapay_zeka.ayarlar, yapay_zeka.sayac))
+    )
     sunucu.include_router(maliyet_rotalarini_olustur(maliyet))
     sunucu.include_router(sartname_rotalarini_olustur(sartname))
     sunucu.mount(STATIK_ADRES_ONEKI, StaticFiles(directory=STATIK_KLASORU), name="statik")
