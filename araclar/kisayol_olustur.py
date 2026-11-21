@@ -20,6 +20,10 @@ from cekirdek.ayarlar import PROGRAM_ADI, PROJE_KOKU, SIMGE_YOLU
 KISAYOL_ACIKLAMASI: Final[str] = f"{PROGRAM_ADI} – Drone tasarla, kontrol et, harekete geç"
 GIRIS_DOSYASI: Final[Path] = PROJE_KOKU / "masaustu.py"
 KONSOLSUZ_PYTHON: Final[str] = "pythonw.exe"
+# PowerShell tam yoluyla çağrılır: yalnızca "powershell" yazılırsa Windows önce çalışma
+# klasörüne bakar; oraya konmuş sahte bir powershell.exe çalışabilirdi.
+POWERSHELL_GORELI_YOLU: Final[tuple[str, ...]] = ("System32", "WindowsPowerShell", "v1.0", "powershell.exe")
+VARSAYILAN_WINDOWS_KLASORU: Final[str] = r"C:\Windows"
 
 # Yollar komut metnine gömülmez, ortam değişkeniyle verilir: klasör adında boşluk veya
 # tırnak olsa bile komut bozulmasın.
@@ -50,6 +54,19 @@ def konsolsuz_python() -> Path:
     return yol
 
 
+def powershell_yolu() -> Path:
+    """
+    Windows'un kendi PowerShell'inin tam yolu (%SystemRoot%\\System32\\...\\powershell.exe).
+
+    Hatalar:
+        FileNotFoundError: PowerShell bulunamazsa.
+    """
+    yol = Path(os.environ.get("SystemRoot", VARSAYILAN_WINDOWS_KLASORU)).joinpath(*POWERSHELL_GORELI_YOLU)
+    if not yol.is_file():
+        raise FileNotFoundError(f"PowerShell bulunamadı: {yol}")
+    return yol
+
+
 def kisayol_olustur() -> Path:
     """
     Masaüstüne kısayolu yazar (varsa üzerine yazar).
@@ -72,7 +89,7 @@ def kisayol_olustur() -> Path:
         "GK_ACIKLAMA": KISAYOL_ACIKLAMASI,
     }
     sonuc = subprocess.run(
-        ["powershell", "-NoProfile", "-NonInteractive", "-Command", POWERSHELL_KOMUTU],
+        [str(powershell_yolu()), "-NoProfile", "-NonInteractive", "-Command", POWERSHELL_KOMUTU],
         env=ortam, capture_output=True, text=True, check=True,
     )
     return Path(sonuc.stdout.strip().splitlines()[-1])

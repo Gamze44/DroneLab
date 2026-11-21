@@ -12,6 +12,8 @@ from typing import Any
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from arayuz.parametreler import Kimlik
+
 from elektronik.parcalar.turler import PARCA_DURUMU_ADLARI
 from maliyet.hesap import MaliyetKalemi, Toplam
 from maliyet.para import PARA_BIRIMLERI, TL
@@ -59,7 +61,7 @@ def maliyet_rotalarini_olustur(servis: MaliyetServisi) -> APIRouter:
         return [{"deger": kod, "ad": ad} for kod, ad in PARA_BIRIMLERI.items()]
 
     @rotalar.get("/dronelar/{kimlik}/maliyet")
-    def maliyet(kimlik: int, yenile: bool = False) -> dict[str, Any]:
+    def maliyet(kimlik: Kimlik, yenile: bool = False) -> dict[str, Any]:
         """Maliyet özeti; yenile=true ise kurlar TCMB'den yeniden alınır."""
         s = servis.ozet(kimlik, kurlari_yenile=yenile)
         kalemler = []
@@ -88,13 +90,13 @@ def maliyet_rotalarini_olustur(servis: MaliyetServisi) -> APIRouter:
         }
 
     @rotalar.put("/dronelar/{kimlik}/sasi/fiyat")
-    def sasi_fiyati(kimlik: int, istek: SasiFiyatIstegi) -> dict[str, bool]:
+    def sasi_fiyati(kimlik: Kimlik, istek: SasiFiyatIstegi) -> dict[str, bool]:
         """Şasi fiyatını kaydeder."""
         servis.sasi_maliyeti_kaydet(kimlik, istek.tutar, istek.para_birimi, istek.elimde)
         return {"kaydedildi": True}
 
     @rotalar.put("/katalog/{parca_kimlik}/fiyat")
-    def parca_fiyati(parca_kimlik: int, istek: FiyatIstegi) -> dict[str, bool]:
+    def parca_fiyati(parca_kimlik: Kimlik, istek: FiyatIstegi) -> dict[str, bool]:
         """Parçanın 1 adet fiyatını kaydeder."""
         servis.parca_fiyati_kaydet(parca_kimlik, istek.tutar, istek.para_birimi)
         return {"kaydedildi": True}

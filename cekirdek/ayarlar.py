@@ -30,11 +30,14 @@ SUNUCU_ADRESI: Final[str] = "127.0.0.1"
 # DEĞİŞTİRİLEBİLİR: Port başka bir program tarafından kullanılıyorsa farklı bir sayı ver.
 SUNUCU_PORTU: Final[int] = 8000
 
-# DEĞİŞTİRİLEBİLİR: Program açılınca tarayıcının kendiliğinden açılıp açılmayacağı.
-TARAYICIYI_OTOMATIK_AC: Final[bool] = True
+# DEĞİŞTİRİLEBİLİR: Sunucunun kabul ettiği adres adları (Host başlığı). Başka bir web
+# sitesinin kendi alan adını 127.0.0.1'e yönlendirip programa erişmesini (DNS rebinding)
+# engeller. SUNUCU_ADRESI değiştirilirse buraya da eklenmeli.
+IZINLI_HOSTLAR: Final[tuple[str, ...]] = ("127.0.0.1", "localhost")
 
-# Sunucu ayağa kalkmadan tarayıcı açılırsa sayfa hata verir; bu yüzden kısa bir bekleme var.
-TARAYICI_ACMA_GECIKMESI_SN: Final[float] = 1.0
+# DEĞİŞTİRİLEBİLİR: Program açılınca tarayıcının kendiliğinden açılıp açılmayacağı
+# (sunucu hazır olunca açılır; port doluysa açılmaz).
+TARAYICIYI_OTOMATIK_AC: Final[bool] = True
 
 # ---------- Masaüstü penceresi (masaustu.py) ----------
 
@@ -75,6 +78,23 @@ EN_FAZLA_SARTNAME_SAYFASI: Final[int] = 50
 # DEĞİŞTİRİLEBİLİR: Word belgesinde Word'ün kaydettiği sayfa sayısı yoksa sayfa, kelime
 # sayısından bu oranla tahmin edilir (sonuç "tahmini" diye gösterilir).
 SAYFA_BASINA_KELIME: Final[int] = 500
+
+# DEĞİŞTİRİLEBİLİR: Dosya içermeyen isteklerin (JSON) en büyük boyutu (MB).
+EN_BUYUK_ISTEK_MB: Final[int] = 5
+
+# ---------- Zip tabanlı dosyalar (Word .docx, 3MF) ----------
+# Bu dosyalar aslında sıkıştırılmış arşivdir. Kötü amaçlı bir arşiv küçük görünüp açılınca
+# gigabaytlarca büyüyebilir ("zip bombası"); açmadan önce bu sınırlar denetlenir.
+# DEĞİŞTİRİLEBİLİR: Arşivin içindekilerin açılmış toplam boyutu (MB).
+EN_BUYUK_ACIK_ARSIV_MB: Final[int] = 1024
+# DEĞİŞTİRİLEBİLİR: Bir arşiv üyesinin en çok sıkıştırma oranı (açık boyut / sıkışık boyut).
+# Gerçek belgelerde 5–20 kat görülür; zip bombalarında binlerce kattır.
+EN_BUYUK_SIKISTIRMA_ORANI: Final[int] = 100
+# Oran yalnızca bu boyuttan (MB) büyük üyelerde denetlenir; küçük ve tekrarlı XML'ler
+# yüksek oranla sıkışabilir ama zararsızdır.
+ORAN_DENETIM_ESIGI_MB: Final[int] = 1
+# DEĞİŞTİRİLEBİLİR: Arşivdeki en çok dosya sayısı.
+EN_FAZLA_ARSIV_UYESI: Final[int] = 10_000
 
 # Yerel ayar dosyası ve Gemini anahtar dosyası veri/ klasöründe durur (kodun içinde değil).
 # DİKKAT: veri/ klasörü başkasıyla paylaşılacaksa önce anahtar dosyası çıkarılmalı.

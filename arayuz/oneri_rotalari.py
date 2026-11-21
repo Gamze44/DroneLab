@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from arastirma.ayarlar import EN_BUYUK_GUNLUK_SINIR
 from arastirma.gemini import MODELLER
 from arayuz.elektronik_rotalari import ParcaBilgisi, bag_sozlugu, hesap_degeri_sozlugu, parca_sozlugu, uyum_sozlugu
+from arayuz.parametreler import GovdeKimligi, Kimlik
 from elektronik.oneri.servis import OneriAdayi, OneriServisi
 from elektronik.parcalar.turler import DigerAltTur, ParcaTuru
 
@@ -33,7 +34,7 @@ class OneriSecimi(BaseModel):
     """Seçilen aday: katalogdaysa kimliği, değilse parça bilgisi."""
 
     parca: ParcaBilgisi | None = None
-    parca_kimlik: int | None = None
+    parca_kimlik: GovdeKimligi | None = None
     adet: int = 1
 
 
@@ -74,7 +75,7 @@ def oneri_rotalarini_olustur(servis: OneriServisi) -> APIRouter:
     rotalar = APIRouter(prefix="/api")
 
     @rotalar.post("/dronelar/{kimlik}/oneriler")
-    def oner(kimlik: int, istek: OneriIstegi) -> dict[str, Any]:
+    def oner(kimlik: Kimlik, istek: OneriIstegi) -> dict[str, Any]:
         """Gemini'den aday ister (günlük sınıra sayılır)."""
         sonuc = servis.oner(kimlik, istek.tur, istek.alt_tur)
         return {
@@ -86,7 +87,7 @@ def oneri_rotalarini_olustur(servis: OneriServisi) -> APIRouter:
         }
 
     @rotalar.post("/dronelar/{kimlik}/oneriler/sec")
-    def sec(kimlik: int, secim: OneriSecimi) -> dict[str, Any]:
+    def sec(kimlik: Kimlik, secim: OneriSecimi) -> dict[str, Any]:
         """Seçilen adayı drone'a ekler."""
         bilgi = secim.parca
         bag = servis.sec(

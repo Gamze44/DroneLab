@@ -154,21 +154,20 @@ class KonturAlanHesaplayici:
         Dönüş:
             KonturOzeti.
         """
-        alanlar = [abs(self.isaretli_alan(k)) for k in konturlar]
-        kutular = [self._sinir_kutusu(k) for k in konturlar]
+        if not konturlar:
+            return KonturOzeti(net_alan=0.0, dis_kontur_sayisi=0, delik_sayisi=0)
+        alanlar = np.array([abs(self.isaretli_alan(k)) for k in konturlar])
+        kutular = np.array([self._sinir_kutusu(k) for k in konturlar])
 
         net_alan = 0.0
         dis_sayisi = 0
         delik_sayisi = 0
         for i, kontur in enumerate(konturlar):
-            derinlik = sum(
-                1
-                for j, dis in enumerate(konturlar)
-                if j != i
-                and alanlar[j] > alanlar[i]
-                and self._kutu_icinde_mi(kutular[i], kutular[j])
-                and self.nokta_icinde_mi(kontur[0], dis)
-            )
+            # Pahalı nokta-içinde testinden önce, alanı daha büyük ve sınır kutusu bu
+            # konturu içine alan adaylar numpy ile tek seferde seçilir. Python döngüsüyle
+            # yapılan karşılaştırma binlerce delikli çizimde saniyeler sürüyordu.
+            adaylar = self._kapsayan_adaylar(i, alanlar, kutular)
+            derinlik = sum(1 for j in adaylar if self.nokta_icinde_mi(kontur[0], konturlar[j]))
             if derinlik % 2 == 0:
                 net_alan += alanlar[i]
                 if derinlik == 0:
@@ -177,7 +176,7 @@ class KonturAlanHesaplayici:
                 net_alan -= alanlar[i]
                 delik_sayisi += 1
 
-        return KonturOzeti(net_alan=net_alan, dis_kontur_sayisi=dis_sayisi, delik_sayisi=delik_sayisi)
+        return KonturOzeti(net_alan=float(net_alan), dis_kontur_sayisi=dis_sayisi, delik_sayisi=delik_sayisi)
 
     @staticmethod
     def _sinir_kutusu(kontur: Kontur) -> tuple[float, float, float, float]:
@@ -186,11 +185,27 @@ class KonturAlanHesaplayici:
         return (*dizi.min(axis=0), *dizi.max(axis=0))
 
     @staticmethod
-    def _kutu_icinde_mi(ic: tuple[float, ...], dis: tuple[float, ...]) -> bool:
+    def _kapsayan_adaylar(i: int, alanlar: np.ndarray, kutular: np.ndarray) -> np.ndarray:
         """
-        İç kutunun dış kutunun içinde olup olmadığını döndürür.
+        i. konturu içine alabilecek konturların sıra numaraları.
 
-        Pahalı nokta-içinde testinden önce hızlı bir eleme yapmak için kullanılır;
-        çok delikli şasilerde hesabı belirgin şekilde hızlandırır.
+        Aday: alanı daha büyük ve sınır kutusu i. konturun kutusunu tamamen içeren kontur.
+        Kesin karar için ayrıca nokta-içinde testi gerekir.
+
+        Parametreler:
+            i: Denetlenen konturun sırası.
+            alanlar: Her konturun alanı (n,).
+            kutular: Her konturun (en küçük x, en küçük y, en büyük x, en büyük y) kutusu (n, 4).
+        Dönüş:
+            Aday sıra numaraları dizisi.
         """
-        return ic[0] >= dis[0] and ic[1] >= dis[1] and ic[2] <= dis[2] and ic[3] <= dis[3]
+        ic = kutular[i]
+        uygun = (
+            (alanlar > alanlar[i])
+            & (kutular[:, 0] <= ic[0])
+            & (kutular[:, 1] <= ic[1])
+            & (kutular[:, 2] >= ic[2])
+            & (kutular[:, 3] >= ic[3])
+        )
+        uygun[i] = False
+        return np.flatnonzero(uygun)

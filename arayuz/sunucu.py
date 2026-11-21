@@ -18,8 +18,20 @@ from fastapi.staticfiles import StaticFiles
 
 from arayuz.drone_rotalari import drone_rotalarini_olustur
 from arayuz.elektronik_rotalari import elektronik_rotalarini_olustur
+from arayuz.parametreler import Kimlik
+from arayuz.guvenlik import (
+    GuvenlikBasliklari,
+    HostDenetimi,
+    IstekBoyutuSiniri,
+    IstekBoyutuSinirlari,
+    KaynakDenetimi,
+)
 from cekirdek.ayarlar import (
+    EN_BUYUK_ISTEK_MB,
+    EN_BUYUK_SARTNAME_MB,
+    EN_BUYUK_YUKLEME_MB,
     EN_FAZLA_SARTNAME_SAYFASI,
+    IZINLI_HOSTLAR,
     PROGRAM_ADI,
     PROGRAM_SURUMU,
     SIMGE_YOLU,
@@ -48,6 +60,8 @@ ANA_SAYFA_DOSYASI: Final[str] = "index.html"
 DRONE_SAYFASI_DOSYASI: Final[str] = "drone.html"
 AYARLAR_SAYFASI_DOSYASI: Final[str] = "ayarlar.html"
 STATIK_ADRES_ONEKI: Final[str] = "/statik"
+# Dosya sınırı genel yükleme sınırından farklı olan adresler (bkz. IstekBoyutuSiniri).
+SARTNAME_YUKLEME_ADRESI: Final[str] = "/api/sartnameler"
 
 # HTML sayfalarındaki yer tutucular ve yerine yazılacak değerler (bkz. sayfa_yaniti).
 SAYFA_YER_TUTUCULARI: Final[dict[str, str]] = {
@@ -128,10 +142,30 @@ def sayfa_yaniti(dosya_adi: str) -> HTMLResponse:
     return HTMLResponse(metin)
 
 
+def _guvenlik_katmanlarini_ekle(sunucu: FastAPI, izinli_hostlar: tuple[str, ...]) -> None:
+    """
+    Güvenlik ara katmanlarını ekler (ayrıntı: arayuz/guvenlik.py).
+
+    Starlette'te son eklenen katman en dışta çalışır. Sıra (dıştan içe): güvenlik
+    başlıkları -> Host -> kaynak (CSRF) -> istek boyutu -> uygulama. Başlıklar en dışta
+    olduğu için reddedilen isteklerin yanıtlarına da eklenir.
+    """
+    sinirlar = IstekBoyutuSinirlari(
+        dosya_sinirlari_mb={SARTNAME_YUKLEME_ADRESI: EN_BUYUK_SARTNAME_MB},
+        varsayilan_dosya_mb=EN_BUYUK_YUKLEME_MB,
+        diger_mb=EN_BUYUK_ISTEK_MB,
+    )
+    sunucu.add_middleware(IstekBoyutuSiniri, sinirlar=sinirlar)
+    sunucu.add_middleware(KaynakDenetimi)
+    sunucu.add_middleware(HostDenetimi, izinli_hostlar=izinli_hostlar)
+    sunucu.add_middleware(GuvenlikBasliklari)
+
+
 def sunucu_olustur(
     veri_klasoru: Path = VERI_KLASORU,
     saglayici_uretici: SaglayiciUretici = gemini_uret,
     kur_getirici: Callable[[], bytes] = tcmb_xml_getir,
+    izinli_hostlar: tuple[str, ...] | None = None,
 ) -> FastAPI:
     """
     FastAPI uygulamasını oluşturur; sayfaları, statik dosyaları ve API uçlarını bağlar.
@@ -141,11 +175,16 @@ def sunucu_olustur(
         saglayici_uretici: Yapay zeka sağlayıcısını üreten fonksiyon; testlerde sahtesi verilir
             ki gerçek Gemini isteği yapılmasın.
         kur_getirici: TCMB kur dosyasını indiren fonksiyon; testlerde sahtesi verilir.
+        izinli_hostlar: Kabul edilen Host adları; verilmezse IZINLI_HOSTLAR (çağrı anında
+            okunur ki testler test istemcisinin adını ekleyebilsin).
     Dönüş:
         Çalıştırılmaya hazır FastAPI nesnesi.
     """
-    sunucu = FastAPI(title=PROGRAM_ADI, version=PROGRAM_SURUMU)
+    # API belgeleri (/docs, /redoc, /openapi.json) kapalı: kullanıcıya gerekmez ve
+    # saldırgana bütün uçların haritasını verir.
+    sunucu = FastAPI(title=PROGRAM_ADI, version=PROGRAM_SURUMU, docs_url=None, redoc_url=None, openapi_url=None)
     _hata_yakalayicilari_ekle(sunucu)
+    _guvenlik_katmanlarini_ekle(sunucu, izinli_hostlar if izinli_hostlar is not None else IZINLI_HOSTLAR)
     elektronik = ElektronikServisi(veri_klasoru)
     maliyet = MaliyetServisi(elektronik, veri_klasoru, kur_getirici)
     yapay_zeka = YapayZekaIstemcisi(veri_klasoru, saglayici_uretici)
@@ -163,7 +202,7 @@ def sunucu_olustur(
         return sayfa_yaniti(ANA_SAYFA_DOSYASI)
 
     @sunucu.get("/drone/{kimlik}", include_in_schema=False)
-    def drone_sayfasi(kimlik: int) -> HTMLResponse:
+    def drone_sayfasi(kimlik: Kimlik) -> HTMLResponse:
         """Drone çalışma sayfasını gönderir; veriyi sayfa API'den kendisi çeker."""
         return sayfa_yaniti(DRONE_SAYFASI_DOSYASI)
 

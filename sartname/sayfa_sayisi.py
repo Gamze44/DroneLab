@@ -61,22 +61,47 @@ class SayfaSayaci:
         Dönüş:
             SayfaSayisi.
         """
+        return self.kesin_say(yol) or self.tahmin_et(metin)
+
+    def kesin_say(self, yol: Path) -> SayfaSayisi | None:
+        """
+        Metne gerek kalmadan bulunabilen sayfa sayısı: PDF'in sayfa sayısı veya Word'ün
+        kaydettiği değer. Böylece sınırı aşan belge, uzun süren metin çıkarma işlemine
+        girmeden reddedilebilir.
+
+        Parametreler:
+            yol: Belge dosyası.
+        Dönüş:
+            SayfaSayisi; bulunamazsa (Word'de kayıt yok veya PDF okunamadı) None.
+        """
         if yol.suffix.lower() == PDF_UZANTISI:
-            return SayfaSayisi(self._pdf_sayfa(yol))
-        kayitli = self._word_kayitli_sayfa(yol)
-        if kayitli is not None:
-            return SayfaSayisi(kayitli)
+            sayi = self._pdf_sayfa(yol)
+        else:
+            sayi = self._word_kayitli_sayfa(yol)
+        return SayfaSayisi(sayi) if sayi is not None else None
+
+    def tahmin_et(self, metin: str) -> SayfaSayisi:
+        """
+        Sayfa sayısını kelime sayısından tahmin eder (sonuç "tahmini" işaretlidir).
+
+        Parametreler:
+            metin: Belgeden çıkarılmış metin.
+        """
         kelime = len(metin.split())
         return SayfaSayisi(max(1, math.ceil(kelime / self.sayfa_basina_kelime)), tahmini=True)
 
     @staticmethod
-    def _pdf_sayfa(yol: Path) -> int:
+    def _pdf_sayfa(yol: Path) -> int | None:
+        """PDF'in sayfa sayısı; dosya bozuk veya parolalıysa None (hatayı metin çıkarıcı anlatır)."""
         from pypdf import PdfReader
 
-        okuyucu = PdfReader(str(yol))
-        if okuyucu.is_encrypted:
-            okuyucu.decrypt("")  # metin çıkarıcı parolalı PDF'i zaten reddetti; burada yalnızca kopyalama korumalı olanlar gelir
-        return len(okuyucu.pages)
+        try:
+            okuyucu = PdfReader(str(yol))
+            if okuyucu.is_encrypted:
+                okuyucu.decrypt("")  # yalnızca kopyalama korumalı (parolasız) PDF'ler açılır
+            return len(okuyucu.pages)
+        except Exception:  # pypdf bozuk dosyada çok farklı hatalar fırlatıyor
+            return None
 
     @staticmethod
     def _word_kayitli_sayfa(yol: Path) -> int | None:
@@ -111,7 +136,31 @@ class SayfaSiniriDenetleyici:
         Hatalar:
             GecersizDegerHatasi: Sınır aşılıyorsa.
         """
-        sayfa = self._sayac.say(yol, metin)
+        return self._siniri_uygula(self._sayac.say(yol, metin))
+
+    def on_denetle(self, yol: Path) -> SayfaSayisi | None:
+        """
+        Metin çıkarılmadan önce, kesin bilinen sayfa sayısıyla denetler.
+
+        Dönüş:
+            Sayfa sayısı; metin olmadan bulunamadıysa None (o zaman tahmini_denetle çağrılmalı).
+        Hatalar:
+            GecersizDegerHatasi: Sınır aşılıyorsa.
+        """
+        sayfa = self._sayac.kesin_say(yol)
+        return self._siniri_uygula(sayfa) if sayfa is not None else None
+
+    def tahmini_denetle(self, metin: str) -> SayfaSayisi:
+        """
+        Kesin sayfa sayısı bulunamayan belgeyi kelime sayısı tahminiyle denetler.
+
+        Hatalar:
+            GecersizDegerHatasi: Sınır aşılıyorsa.
+        """
+        return self._siniri_uygula(self._sayac.tahmin_et(metin))
+
+    def _siniri_uygula(self, sayfa: SayfaSayisi) -> SayfaSayisi:
+        """Sınır aşılıyorsa GecersizDegerHatasi fırlatır; aşılmıyorsa sayfayı döndürür."""
         if sayfa.sayi > self.en_fazla:
             raise GecersizDegerHatasi(
                 f"Şartname en çok {self.en_fazla} sayfa olabilir; bu belge {sayfa.metin()}. "

@@ -6,6 +6,8 @@ hesaplanır. Ağırlık daha sonra alan × kalınlık × yoğunluk olarak buluna
 kalınlık bu aşamada istenmez.
 """
 
+import logging
+import math
 from pathlib import Path
 from typing import Final, Iterable
 
@@ -35,6 +37,29 @@ DXF_BIRIM_KODLARI: Final[dict[int, str]] = {1: "inch", 4: "mm", 5: "cm", 6: "m"}
 EGRI_SAPMA_ORANI: Final[float] = 1e-4
 UC_ESLESME_ORANI: Final[float] = 1e-4
 
+# DEĞİŞTİRİLEBİLİR: Bir çizimden alınacak en çok geometrik öğe (bloklar açıldıktan sonra).
+# Bloklar iç içe çoğaltılabildiği için 50 KB'lık bir DXF milyarlarca öğeye açılabilir;
+# gerçek bir şasi çizimi birkaç bin öğeyi geçmez.
+EN_FAZLA_DXF_OGESI: Final[int] = 10_000
+# DEĞİŞTİRİLEBİLİR: Birleştirilecek en çok açık çizgi parçası. Birleştirme parça sayısının
+# karesiyle yavaşladığı için sınır, programın dakikalarca donmasını önler.
+EN_FAZLA_ACIK_PARCA: Final[int] = 5_000
+
+COK_OGELI_CIZIM_MESAJI: Final[str] = (
+    "'{ad}' çizimi çok fazla öğe içeriyor (sınır {sinir}). Şasi dışındaki çizimleri (montaj, "
+    "ölçü, tekrarlanan bloklar) silip yalnızca şasi levhasını dışa aktarın."
+)
+BOZUK_CIZIM_MESAJI: Final[str] = (
+    "'{ad}' çizimindeki şekiller işlenemedi; dosya bozuk veya beklenmeyen öğeler içeriyor olabilir. "
+    "Çizimi yeniden dışa aktarıp tekrar deneyin."
+)
+
+gunluk = logging.getLogger(__name__)
+
+
+class _CokOgeliCizim(Exception):
+    """Öğe sayısı sınırı aşıldığında toplama işlemini erken durdurmak için."""
+
 
 class DxfOkuyucu(SasiOkuyucu):
     """DXF dosyalarından levha şasi geometrisini okur."""
@@ -56,10 +81,30 @@ class DxfOkuyucu(SasiOkuyucu):
             DosyaOkumaHatasi: Dosya bozuksa veya kapalı kontur bulunamazsa.
         """
         belge = self._belgeyi_ac(yol)
+        try:
+            return self._belgeyi_isle(yol, belge)
+        except (ValueError, ArithmeticError, RecursionError, IndexError, ezdxf.DXFError) as hata:
+            # Bozuk veya aşırı uç değerli geometri (ör. sonsuz koordinat) kütüphanede çok
+            # farklı hatalara yol açabilir; kullanıcı tek, anlaşılır bir mesaj görür.
+            gunluk.warning("DXF işlenemedi: %s", hata)
+            raise DosyaOkumaHatasi(BOZUK_CIZIM_MESAJI.format(ad=yol.name)) from hata
+
+    def _belgeyi_isle(self, yol: Path, belge: ezdxf.document.Drawing) -> SasiGeometrisi:
+        """
+        Açılmış DXF belgesinden konturları, delikleri ve net alanı çıkarır (bkz. oku).
+
+        Hatalar:
+            DosyaOkumaHatasi: Şekil yoksa, çok fazla öğe varsa veya çizim boyutsuzsa.
+        """
         uyarilar: list[str] = []
 
         yok_sayilan_turler: set[str] = set()
-        yollar = self._yollari_topla(belge.modelspace(), yok_sayilan_turler, derinlik=0)
+        yollar: list[dxf_yolu.Path] = []
+        try:
+            self._yollari_topla(belge.modelspace(), yok_sayilan_turler, derinlik=0, yollar=yollar)
+        except _CokOgeliCizim:
+            raise DosyaOkumaHatasi(COK_OGELI_CIZIM_MESAJI.format(ad=yol.name, sinir=EN_FAZLA_DXF_OGESI)) from None
+        yollar = [y for y in yollar if len(y) > 0 or y.start != y.end]
         if not yollar:
             raise DosyaOkumaHatasi(
                 f"'{yol.name}' dosyasında şasi çizimi bulunamadı. "
@@ -72,6 +117,12 @@ class DxfOkuyucu(SasiOkuyucu):
 
         kutu = dxf_yolu.bbox(yollar, fast=True)
         kosegen = float(kutu.size.magnitude)
+        # Tolerans köşegenden türetildiği için boyutsuz (tek nokta) veya sonsuz büyüklükte
+        # bir çizim eğri bölmeyi sonsuz döngüye sokabilir.
+        if not math.isfinite(kosegen) or kosegen <= 0:
+            raise DosyaOkumaHatasi(
+                f"'{yol.name}' çiziminin boyutu sıfır veya geçersiz. Şasi çiziminin doğru dışa aktarıldığından emin olun."
+            )
         konturlar, kapanmayan = self._konturlari_cikar(yollar, kosegen)
         if not konturlar:
             raise DosyaOkumaHatasi(
@@ -116,37 +167,45 @@ class DxfOkuyucu(SasiOkuyucu):
         except IOError as hata:
             raise DosyaOkumaHatasi(f"'{yol.name}' dosyası açılamadı veya geçerli bir DXF dosyası değil.") from hata
         except ezdxf.DXFStructureError as hata:
-            raise DosyaOkumaHatasi(f"'{yol.name}' DXF dosyası bozuk. (Ayrıntı: {hata})") from hata
+            # Kütüphanenin ham mesajı kullanıcıya değil günlüğe yazılır.
+            gunluk.warning("DXF yapısı bozuk: %s", hata)
+            raise DosyaOkumaHatasi(f"'{yol.name}' DXF dosyası bozuk. Çizimi yeniden dışa aktarıp deneyin.") from hata
 
     def _yollari_topla(
-        self, varliklar: Iterable[DXFGraphic], yok_sayilan_turler: set[str], derinlik: int
-    ) -> list[dxf_yolu.Path]:
+        self,
+        varliklar: Iterable[DXFGraphic],
+        yok_sayilan_turler: set[str],
+        derinlik: int,
+        yollar: list[dxf_yolu.Path],
+    ) -> None:
         """
-        Geometrik öğeleri ezdxf yol (path) nesnelerine çevirir; blokları açar.
+        Geometrik öğeleri ezdxf yol (path) nesnelerine çevirip listeye ekler; blokları açar.
+
+        Liste parametreyle verilir (her çağrı yeni liste döndürmez): böylece iç içe
+        bloklarda toplam öğe sayısı tek yerde sayılır ve sınır aşılınca hemen durulur.
 
         Parametreler:
             varliklar: DXF öğeleri.
             yok_sayilan_turler: Desteklenmeyen öğe türlerinin ekleneceği küme.
             derinlik: Şu anki blok iç içelik derinliği.
-        Dönüş:
-            ezdxf Path listesi.
+            yollar: Yolların ekleneceği liste (yerinde değiştirilir).
+        Hatalar:
+            _CokOgeliCizim: Öğe sayısı EN_FAZLA_DXF_OGESI'ni aşarsa.
         """
-        yollar: list[dxf_yolu.Path] = []
         for varlik in varliklar:
             tur = varlik.dxftype()
             if tur == "INSERT" and derinlik < EN_FAZLA_BLOK_DERINLIGI:
-                yollar.extend(
-                    self._yollari_topla(varlik.virtual_entities(), yok_sayilan_turler, derinlik + 1)
-                )
+                self._yollari_topla(varlik.virtual_entities(), yok_sayilan_turler, derinlik + 1, yollar)
             elif tur in GEOMETRIK_TURLER:
                 try:
                     yollar.append(dxf_yolu.make_path(varlik))
                 except (TypeError, ValueError):
                     # 3B ağ çoklu çizgileri gibi yola çevrilemeyen özel öğeler.
                     yok_sayilan_turler.add(tur)
+                if len(yollar) > EN_FAZLA_DXF_OGESI:
+                    raise _CokOgeliCizim()
             else:
                 yok_sayilan_turler.add(tur)
-        return [y for y in yollar if len(y) > 0 or y.start != y.end]
 
     def _konturlari_cikar(self, yollar: list[dxf_yolu.Path], kosegen: float) -> tuple[list[Kontur], int]:
         """
@@ -172,6 +231,11 @@ class DxfOkuyucu(SasiOkuyucu):
             else:
                 acik.append(noktalar)
 
+        if len(acik) > EN_FAZLA_ACIK_PARCA:
+            raise DosyaOkumaHatasi(
+                f"Çizimde birleştirilmesi gereken {len(acik)} açık çizgi parçası var (sınır {EN_FAZLA_ACIK_PARCA}). "
+                "Şasi dış hattını CAD programında tek bir kapalı çoklu çizgi (polyline) olarak dışa aktarın."
+            )
         birlesenler, kapanmayan = KonturBirlestirici(tolerans).birlestir(acik)
         return kapali + birlesenler, kapanmayan
 

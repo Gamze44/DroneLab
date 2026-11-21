@@ -21,6 +21,7 @@ from fastapi import APIRouter, Form, UploadFile
 from pydantic import BaseModel, Field
 
 from arayuz.drone_rotalari import GECICI_DOSYA_ADI, gecici_dosyaya_yaz
+from arayuz.parametreler import GovdeKimligi, Kimlik
 from cekirdek.ayarlar import EN_BUYUK_SARTNAME_MB
 from sartname.kontrol import MaddeSonucu, durum_adi
 from sartname.modeller import BUYUKLUK_TANIMLARI, MADDE_SINIFI_ADLARI, SINIR_TURU_ADLARI, Madde, Sartname
@@ -36,7 +37,7 @@ class MaddeTablosu(BaseModel):
 class BaglamaIstegi(BaseModel):
     """Kütüphaneden seçilen şartname."""
 
-    sartname_kimlik: int
+    sartname_kimlik: GovdeKimligi
 
 
 def sartname_sozlugu(s: Sartname) -> dict[str, Any]:
@@ -94,7 +95,7 @@ def sartname_rotalarini_olustur(servis: SartnameServisi) -> APIRouter:
         return [sartname_sozlugu(s) for s in servis.listele()]
 
     @rotalar.post("/sartnameler")
-    def yukle(dosya: UploadFile, ad: str = Form(...), drone_kimlik: int | None = Form(None)) -> dict[str, Any]:
+    def yukle(dosya: UploadFile, ad: str = Form(...), drone_kimlik: GovdeKimligi | None = Form(None)) -> dict[str, Any]:
         """Şartname belgesini yükler; drone verilirse ona bağlar."""
         dosya_adi = Path(dosya.filename or "").name
         servis.dosya_turunu_denetle(dosya_adi)
@@ -105,24 +106,24 @@ def sartname_rotalarini_olustur(servis: SartnameServisi) -> APIRouter:
         return sartname_sozlugu(sartname)
 
     @rotalar.get("/sartnameler/{kimlik}")
-    def getir(kimlik: int) -> dict[str, Any]:
+    def getir(kimlik: Kimlik) -> dict[str, Any]:
         """Şartname ve maddeleri."""
         sartname, maddeler = servis.getir(kimlik)
         return {**sartname_sozlugu(sartname), "maddeler": [madde_sozlugu(m) for m in maddeler]}
 
     @rotalar.delete("/sartnameler/{kimlik}")
-    def sil(kimlik: int) -> dict[str, bool]:
+    def sil(kimlik: Kimlik) -> dict[str, bool]:
         """Kullanılmayan şartnameyi siler."""
         servis.sil(kimlik)
         return {"silindi": True}
 
     @rotalar.put("/sartnameler/{kimlik}/maddeler")
-    def maddeleri_kaydet(kimlik: int, tablo: MaddeTablosu) -> list[dict[str, Any]]:
+    def maddeleri_kaydet(kimlik: Kimlik, tablo: MaddeTablosu) -> list[dict[str, Any]]:
         """Madde tablosunu kaydeder (bu şartnameyi kullanan tüm dronelar etkilenir)."""
         return [madde_sozlugu(m) for m in servis.maddeleri_kaydet(kimlik, tablo.maddeler)]
 
     @rotalar.post("/sartnameler/{kimlik}/cikar")
-    def maddeleri_cikar(kimlik: int) -> dict[str, Any]:
+    def maddeleri_cikar(kimlik: Kimlik) -> dict[str, Any]:
         """Gemini ile maddeleri çıkarır (günlük sınıra sayılır)."""
         r = servis.maddeleri_cikar(kimlik)
         return {
@@ -131,7 +132,7 @@ def sartname_rotalarini_olustur(servis: SartnameServisi) -> APIRouter:
         }
 
     @rotalar.get("/dronelar/{kimlik}/sartname")
-    def drone_sartnamesi(kimlik: int) -> dict[str, Any]:
+    def drone_sartnamesi(kimlik: Kimlik) -> dict[str, Any]:
         """Drone'un şartnamesi ve madde madde uyum raporu."""
         r = servis.rapor(kimlik)
         return {
@@ -140,12 +141,12 @@ def sartname_rotalarini_olustur(servis: SartnameServisi) -> APIRouter:
         }
 
     @rotalar.put("/dronelar/{kimlik}/sartname")
-    def bagla(kimlik: int, istek: BaglamaIstegi) -> dict[str, Any]:
+    def bagla(kimlik: Kimlik, istek: BaglamaIstegi) -> dict[str, Any]:
         """Kütüphanedeki şartnameyi drone'a bağlar."""
         return sartname_sozlugu(servis.bagla(kimlik, istek.sartname_kimlik))
 
     @rotalar.delete("/dronelar/{kimlik}/sartname")
-    def bagi_kaldir(kimlik: int) -> dict[str, bool]:
+    def bagi_kaldir(kimlik: Kimlik) -> dict[str, bool]:
         """Drone'un şartnamesini kaldırır (kütüphanede kalır)."""
         servis.bagi_kaldir(kimlik)
         return {"kaldirildi": True}

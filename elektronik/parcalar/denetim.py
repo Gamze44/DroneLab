@@ -7,12 +7,12 @@ denetimleri yapay zekadan gelen verileri süzmek içindir ve sonraki aşamada
 ayrı bir yerde yapılacak.
 """
 
-import math
 import types
 import typing
 from typing import Any, Final
 
 from cekirdek.hatalar import GecersizDegerHatasi
+from cekirdek.sayilar import EN_BUYUK_GIRDI_DEGERI, gecerli_sayi_mi
 from elektronik.parcalar.turler import alan_etiketi
 
 IZINLI_URL_ONEKLERI: Final[tuple[str, ...]] = ("http://", "https://")
@@ -110,8 +110,10 @@ class DegerDenetleyici:
         if deger is None:
             return
         etiket = alan_etiketi(alan)
-        if isinstance(deger, bool) or not isinstance(deger, (int, float)) or not math.isfinite(deger):
-            raise GecersizDegerHatasi(f"{etiket} geçerli bir sayı olmalı (girilen: {deger!r}).")
+        if not gecerli_sayi_mi(deger):
+            raise GecersizDegerHatasi(
+                f"{etiket} geçerli bir sayı olmalı (girilen: {deger!r}; en çok {EN_BUYUK_GIRDI_DEGERI:g})."
+            )
         if tamsayi and not isinstance(deger, int):
             raise GecersizDegerHatasi(f"{etiket} tam sayı olmalı (girilen: {deger}).")
         if deger <= 0:

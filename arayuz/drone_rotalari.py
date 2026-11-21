@@ -22,6 +22,7 @@ from typing import Any, Final
 from fastapi import APIRouter, UploadFile
 from pydantic import BaseModel
 
+from arayuz.parametreler import Kimlik
 from cekirdek.ayarlar import EN_BUYUK_YUKLEME_MB
 from cekirdek.birimler import UZUNLUK_CARPANLARI_MM
 from cekirdek.hatalar import DosyaOkumaHatasi
@@ -181,7 +182,7 @@ def drone_rotalarini_olustur(servis: DroneServisi) -> APIRouter:
         return drone_sozlugu(servis.olustur(istek.ad, istek.baslangic_turu, istek.drone_turu, istek.amac))
 
     @rotalar.get("/dronelar/{kimlik}")
-    def drone_ayrintisi(kimlik: int) -> dict[str, Any]:
+    def drone_ayrintisi(kimlik: Kimlik) -> dict[str, Any]:
         """Drone'u ve (varsa) şasi bilgilerini döndürür."""
         ayrinti = servis.ayrinti(kimlik)
         sasi = None
@@ -193,13 +194,13 @@ def drone_rotalarini_olustur(servis: DroneServisi) -> APIRouter:
         return {"drone": drone_sozlugu(ayrinti.drone), "sasi": sasi}
 
     @rotalar.delete("/dronelar/{kimlik}")
-    def drone_sil(kimlik: int) -> dict[str, bool]:
+    def drone_sil(kimlik: Kimlik) -> dict[str, bool]:
         """Drone'u ve şasi dosyasını siler."""
         servis.sil(kimlik)
         return {"silindi": True}
 
     @rotalar.post("/dronelar/{kimlik}/sasi")
-    def sasi_yukle(kimlik: int, dosya: UploadFile) -> dict[str, Any]:
+    def sasi_yukle(kimlik: Kimlik, dosya: UploadFile) -> dict[str, Any]:
         """Şasi dosyasını okur ve drone'a kaydeder."""
         dosya_adi = Path(dosya.filename or "").name
         servis.dosya_turunu_denetle(dosya_adi)
@@ -218,12 +219,12 @@ def drone_rotalarini_olustur(servis: DroneServisi) -> APIRouter:
         }
 
     @rotalar.post("/dronelar/{kimlik}/sasi/birim")
-    def birim_onayla(kimlik: int, istek: BirimIstegi) -> dict[str, Any]:
+    def birim_onayla(kimlik: Kimlik, istek: BirimIstegi) -> dict[str, Any]:
         """Birimi onaylar; mm ölçülerini döndürür."""
         return {"olculer": olculer_sozlugu(servis.birim_onayla(kimlik, istek.birim))}
 
     @rotalar.put("/dronelar/{kimlik}/sasi/agirlik")
-    def agirlik_ayarla(kimlik: int, istek: AgirlikIstegi) -> dict[str, Any]:
+    def agirlik_ayarla(kimlik: Kimlik, istek: AgirlikIstegi) -> dict[str, Any]:
         """Şasi ağırlığını elle kaydeder veya siler."""
         return {"drone": drone_sozlugu(servis.sasi_agirligini_ayarla(kimlik, istek.agirlik_g))}
 

@@ -17,6 +17,7 @@ from typing import Any
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
+from arayuz.parametreler import GovdeKimligi, Kimlik
 from cekirdek.hatalar import GecersizDegerHatasi
 from drone.hedefler import DroneHedefleri
 from elektronik.hesap.agirlik import AgirlikOzeti
@@ -67,7 +68,7 @@ class ParcaEklemeIstegi(BaseModel):
     """Drone'a parça ekleme: ya yeni parça bilgisi ya da katalogdaki parçanın kimliği verilir."""
 
     parca: ParcaBilgisi | None = None
-    parca_kimlik: int | None = None
+    parca_kimlik: GovdeKimligi | None = None
     adet: int = 1
     durum: ParcaDurumu = ParcaDurumu.PLANLANAN
 
@@ -238,12 +239,12 @@ def elektronik_rotalarini_olustur(servis: ElektronikServisi) -> APIRouter:
         return [parca_sozlugu(p) for p in servis.katalog_ara(metin, tur=tur, alt_tur=alt_tur)]
 
     @rotalar.put("/katalog/{parca_kimlik}")
-    def katalog_parcasi_guncelle(parca_kimlik: int, bilgi: ParcaBilgisi) -> dict[str, Any]:
+    def katalog_parcasi_guncelle(parca_kimlik: Kimlik, bilgi: ParcaBilgisi) -> dict[str, Any]:
         """Katalog parçasının bilgilerini değiştirir (onu kullanan tüm droneları etkiler)."""
         return parca_sozlugu(servis.parca_guncelle(parca_kimlik, bilgi.ortak(), bilgi.teknik))
 
     @rotalar.get("/dronelar/{kimlik}/elektronik")
-    def elektronik_ozeti(kimlik: int) -> dict[str, Any]:
+    def elektronik_ozeti(kimlik: Kimlik) -> dict[str, Any]:
         """Drone'un parça listesi, zorunlu parça durumu ve ağırlık özeti."""
         ozet = servis.ozet(kimlik)
         return {
@@ -258,18 +259,18 @@ def elektronik_rotalarini_olustur(servis: ElektronikServisi) -> APIRouter:
         }
 
     @rotalar.put("/dronelar/{kimlik}/hedefler")
-    def hedefleri_kaydet(kimlik: int, istek: HedefIstegi) -> dict[str, Any]:
+    def hedefleri_kaydet(kimlik: Kimlik, istek: HedefIstegi) -> dict[str, Any]:
         """Drone hedeflerini (uçuş süresi, yük, bütçe) kaydeder."""
         hedefler = DroneHedefleri(ucus_suresi_dk=istek.ucus_suresi_dk, yuk_g=istek.yuk_g, butce_tl=istek.butce_tl)
         return hedef_sozlugu(servis.hedefleri_kaydet(kimlik, hedefler))
 
     @rotalar.put("/katalog/{parca_kimlik}/itki-tablosu")
-    def itki_tablosu_kaydet(parca_kimlik: int, istek: ItkiTablosuIstegi) -> dict[str, Any]:
+    def itki_tablosu_kaydet(parca_kimlik: Kimlik, istek: ItkiTablosuIstegi) -> dict[str, Any]:
         """Motorun itki tablosunu kaydeder (bu motoru kullanan tüm dronelarda geçerli)."""
         return parca_sozlugu(servis.itki_tablosu_kaydet(parca_kimlik, [s.model_dump() for s in istek.satirlar]))
 
     @rotalar.post("/dronelar/{kimlik}/parcalar")
-    def parca_ekle(kimlik: int, istek: ParcaEklemeIstegi) -> dict[str, Any]:
+    def parca_ekle(kimlik: Kimlik, istek: ParcaEklemeIstegi) -> dict[str, Any]:
         """Yeni parçayı (kataloğa da kaydederek) ya da katalogdaki parçayı drone'a ekler."""
         if (istek.parca is None) == (istek.parca_kimlik is None):
             raise GecersizDegerHatasi("Ya yeni parça bilgisi ya da katalogdaki parça seçilmeli.")
@@ -282,12 +283,12 @@ def elektronik_rotalarini_olustur(servis: ElektronikServisi) -> APIRouter:
         return bag_sozlugu(bag)
 
     @rotalar.patch("/dronelar/{kimlik}/parcalar/{bag_kimlik}")
-    def bag_guncelle(kimlik: int, bag_kimlik: int, istek: BagGuncellemeIstegi) -> dict[str, Any]:
+    def bag_guncelle(kimlik: Kimlik, bag_kimlik: Kimlik, istek: BagGuncellemeIstegi) -> dict[str, Any]:
         """Parçanın bu drone'daki adedini/durumunu değiştirir."""
         return bag_sozlugu(servis.bag_guncelle(kimlik, bag_kimlik, istek.adet, istek.durum))
 
     @rotalar.delete("/dronelar/{kimlik}/parcalar/{bag_kimlik}")
-    def bag_sil(kimlik: int, bag_kimlik: int) -> dict[str, bool]:
+    def bag_sil(kimlik: Kimlik, bag_kimlik: Kimlik) -> dict[str, bool]:
         """Parçayı drone'dan kaldırır (katalogda kalır)."""
         servis.bag_sil(kimlik, bag_kimlik)
         return {"kaldirildi": True}

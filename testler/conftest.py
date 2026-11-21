@@ -11,6 +11,19 @@ import pytest
 import trimesh
 
 KUTU_OLCULERI = (250.0, 250.0, 40.0)
+# FastAPI test istemcisi isteklerde Host olarak bu adı gönderir.
+TEST_ISTEMCISI_HOSTU = "testserver"
+
+
+@pytest.fixture(autouse=True)
+def test_istemcisine_izin_ver(monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Sunucunun Host denetimi yalnızca 127.0.0.1 ve localhost'u kabul eder; testlerde
+    TestClient'ın "testserver" adı da izinli olsun diye listeye eklenir.
+    """
+    import arayuz.sunucu as sunucu_modulu
+
+    monkeypatch.setattr(sunucu_modulu, "IZINLI_HOSTLAR", (*sunucu_modulu.IZINLI_HOSTLAR, TEST_ISTEMCISI_HOSTU))
 
 
 @pytest.fixture

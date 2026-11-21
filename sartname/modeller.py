@@ -8,10 +8,10 @@ birimlerindedir (g, mm, dakika, inç, mAh, TL); birim büyüklükten gelir.
 
 from dataclasses import dataclass
 from enum import Enum
-import math
 from typing import Final
 
 from cekirdek.hatalar import GecersizDegerHatasi
+from cekirdek.sayilar import gecerli_sayi_mi
 
 
 class Buyukluk(str, Enum):
@@ -159,7 +159,7 @@ class Madde:
             raise GecersizDegerHatasi(f"'{tanim.ad}' için 'zorunlu' yerine en az / en çok / eşit seçilmeli.")
         if self.deger is not None:
             d = self.deger
-            if isinstance(d, bool) or not isinstance(d, (int, float)) or not math.isfinite(d) or d < 0:
+            if not gecerli_sayi_mi(d) or d < 0:
                 raise GecersizDegerHatasi(f"{tanim.ad} değeri sıfır veya pozitif bir sayı olmalı (girilen: {d!r}).")
         elif self.buyukluk is not Buyukluk.DIGER:
             raise GecersizDegerHatasi(f"'{tanim.ad}' maddesi için sınır değeri girilmeli.")

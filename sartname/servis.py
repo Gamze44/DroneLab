@@ -10,6 +10,7 @@ from typing import Any
 import uuid
 
 from arastirma.istemci import YapayZekaIstemcisi
+from cekirdek.arsiv_denetimi import ArsivDenetleyici
 from cekirdek.ayarlar import SARTNAME_DOSYALARI_KLASOR_ADI, VERITABANI_DOSYA_ADI
 from cekirdek.hatalar import GecersizDegerHatasi, YapayZekaHatasi
 from depolama.veritabani import Veritabani
@@ -18,7 +19,7 @@ from maliyet.servis import MaliyetServisi
 from sartname.cikarim import SISTEM_TALIMATI, MaddeDonusturucu, istem_olustur, madde_semasi
 from sartname.depo import SartnameDeposu
 from sartname.kontrol import MaddeSonucu, SartnameBaglami, SartnameKontrolcusu
-from sartname.metin_cikarici import SartnameMetinCikarici
+from sartname.metin_cikarici import WORD_UZANTISI, SartnameMetinCikarici
 from sartname.sayfa_sayisi import SayfaSiniriDenetleyici
 from sartname.modeller import Buyukluk, Madde, MaddeSinifi, Sartname
 
@@ -68,6 +69,7 @@ class SartnameServisi:
         self._maliyet = maliyet
         self._yz = yapay_zeka
         self._metin = SartnameMetinCikarici()
+        self._arsiv = ArsivDenetleyici()
         self._sayfa_siniri = SayfaSiniriDenetleyici()
         self._donusturucu = MaddeDonusturucu()
         self._kontrol = SartnameKontrolcusu()
@@ -93,10 +95,17 @@ class SartnameServisi:
             self._elektronik.drone_getir(drone_kimlik)
         if not ad.strip():
             raise GecersizDegerHatasi("Şartnameye bir ad verin (ör. yarışmanın adı ve yılı).")
-        metin = self._metin.cikar(gecici_yol)
+        if uzanti == WORD_UZANTISI:
+            # Word belgesi bir zip arşividir; açılmadan önce zip bombasına karşı denetlenir.
+            self._arsiv.denetle(gecici_yol)
         # Sayfa sınırı kopyalamadan önce denetlenir: reddedilen belge kütüphanede iz bırakmasın.
-        self._sayfa_siniri.denetle(gecici_yol, metin)
-        goreli = Path(SARTNAME_DOSYALARI_KLASOR_ADI) / f"{uuid.uuid4().hex}{uzanti}"
+        # Kesin sayfa sayısı biliniyorsa metin çıkarmadan önce denetlenir (500 sayfalık
+        # bir belge boşuna işlenmesin); bilinmiyorsa metinden tahmin edilir.
+        sayfa = self._sayfa_siniri.on_denetle(gecici_yol)
+        metin = self._metin.cikar(gecici_yol)
+        if sayfa is None:
+            self._sayfa_siniri.tahmini_denetle(metin)
+        goreli =Path(SARTNAME_DOSYALARI_KLASOR_ADI) / f"{uuid.uuid4().hex}{uzanti}"
         hedef = self._veri_klasoru / goreli
         hedef.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(gecici_yol, hedef)

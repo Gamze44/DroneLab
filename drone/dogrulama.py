@@ -5,10 +5,10 @@ Hatalı girişler veritabanına yazılmadan önce burada yakalanır ve kullanıc
 Türkçe, ne yapması gerektiğini anlatan bir mesaj döner.
 """
 
-import math
 from typing import Final
 
 from cekirdek.hatalar import GecersizDegerHatasi
+from cekirdek.sayilar import EN_BUYUK_GIRDI_DEGERI, gecerli_sayi_mi
 from drone.modeller import KULLANIM_AMACLARI
 
 # DEĞİŞTİRİLEBİLİR: Drone adının en fazla karakter sayısı.
@@ -69,6 +69,8 @@ class DroneGirdisiDogrulayici:
         """
         if agirlik_g is None:
             return None
-        if not math.isfinite(agirlik_g) or agirlik_g <= 0:
-            raise GecersizDegerHatasi("Şasi ağırlığı sıfırdan büyük bir sayı olmalı (gram).")
+        if not gecerli_sayi_mi(agirlik_g) or agirlik_g <= 0:
+            raise GecersizDegerHatasi(
+                f"Şasi ağırlığı sıfırdan büyük ve en çok {EN_BUYUK_GIRDI_DEGERI:g} olan bir sayı olmalı (gram)."
+            )
         return float(agirlik_g)

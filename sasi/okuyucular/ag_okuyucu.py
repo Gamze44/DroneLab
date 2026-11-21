@@ -6,15 +6,23 @@ Hacim yalnızca model kapalı (su geçirmez) ise güvenilirdir, bu yüzden
 kapalı olmayan modeller için uyarı üretilir.
 """
 
+import logging
 from pathlib import Path
 from typing import Final
 
 import numpy as np
 import trimesh
+from trimesh.resolvers import Resolver
 
+from cekirdek.arsiv_denetimi import ArsivDenetleyici
 from cekirdek.hatalar import DosyaOkumaHatasi
 from sasi.modeller import GeometriTuru, SasiGeometrisi
 from sasi.okuyucular.temel import SasiOkuyucu
+
+# Zip arşivi olan biçimler; açılmadan önce zip bombasına karşı denetlenir.
+ARSIV_UZANTILARI: Final[frozenset[str]] = frozenset({".3mf"})
+
+gunluk = logging.getLogger(__name__)
 
 # trimesh'in döndürdüğü birim adları -> programın birim adları.
 # Listede olmayan birimler (ör. mikron) "birim yok" sayılır ve kullanıcıya sorulur.
@@ -38,10 +46,45 @@ TRIMESH_BIRIMLERI: Final[dict[str, str]] = {
 GRAF_MOTORU: Final[str] = "networkx"
 
 
+class DisDosyaEngelleyici(Resolver):
+    """
+    trimesh'in, okunan dosyanın başvurduğu başka dosyaları açmasını engeller.
+
+    Neden: OBJ dosyası "mtllib \\\\sunucu\\paylasim\\a.mtl" gibi bir ağ yolu içerebilir.
+    Windows böyle bir yolu açmaya çalışırken kullanıcının oturum bilgisini (NTLM özeti)
+    o sunucuya gönderir; yani kötü amaçlı bir OBJ dosyasını yüklemek parolanın
+    sızmasına yol açabilir. Şasi hesabı için malzeme (.mtl) ve doku resimleri gerekmediği
+    için hiçbir dış dosya açılmaz; trimesh bu durumda modeli malzemesiz okur.
+    """
+
+    def __init__(self) -> None:
+        # Temel sınıfın __init__'i bilerek hata fırlatır; burada kurulacak bir şey yok.
+        pass
+
+    def get(self, key: str) -> bytes:
+        """Her dış dosya isteğini "bulunamadı" olarak yanıtlar (dosya sistemine dokunmaz)."""
+        raise FileNotFoundError(f"Dış dosya açılmaz: {key}")
+
+    def write(self, name: str, data: bytes) -> None:
+        """Okuma sırasında dosya yazılmaz."""
+        raise PermissionError("Dış dosya yazılmaz.")
+
+    def namespaced(self, namespace: str) -> "DisDosyaEngelleyici":
+        """Alt klasör istense de aynı engelleyici döner."""
+        return self
+
+    def keys(self) -> list[str]:
+        """Erişilebilir dış dosya yok."""
+        return []
+
+
 class AgOkuyucu(SasiOkuyucu):
     """STL, OBJ ve 3MF dosyalarını okur."""
 
     UZANTILAR = (".stl", ".obj", ".3mf")
+
+    def __init__(self) -> None:
+        self._arsiv = ArsivDenetleyici()
 
     def oku(self, yol: Path) -> SasiGeometrisi:
         """
@@ -54,6 +97,8 @@ class AgOkuyucu(SasiOkuyucu):
         Hatalar:
             DosyaOkumaHatasi: Dosya bozuksa veya içinde üçgen yoksa.
         """
+        if yol.suffix.lower() in ARSIV_UZANTILARI:
+            self._arsiv.denetle(yol)
         sahne = self._sahneyi_yukle(yol)
         if len(sahne.geometry) == 0:
             raise DosyaOkumaHatasi(f"'{yol.name}' dosyasında 3B geometri bulunamadı. Dosya boş olabilir.")
@@ -111,13 +156,16 @@ class AgOkuyucu(SasiOkuyucu):
             DosyaOkumaHatasi: trimesh dosyayı açamazsa.
         """
         try:
-            return trimesh.load_scene(yol, file_type=yol.suffix.lower().lstrip("."))
+            return trimesh.load_scene(
+                yol, file_type=yol.suffix.lower().lstrip("."), resolver=DisDosyaEngelleyici()
+            )
         except Exception as hata:
             # trimesh bozuk dosyalarda çok farklı hata türleri fırlatabildiği için
-            # hepsi kullanıcıya tek, anlaşılır bir mesajla iletilir.
+            # hepsi kullanıcıya tek, anlaşılır bir mesajla iletilir. Kütüphanenin ham hata
+            # metni (iç yollar içerebilir) kullanıcıya değil günlüğe gider.
+            gunluk.warning("3B dosya okunamadı: %s", hata)
             raise DosyaOkumaHatasi(
-                f"'{yol.name}' dosyası okunamadı. Dosya bozuk veya beklenen formatta olmayabilir. "
-                f"(Ayrıntı: {hata})"
+                f"'{yol.name}' dosyası okunamadı. Dosya bozuk veya beklenen formatta olmayabilir."
             ) from hata
 
     @staticmethod

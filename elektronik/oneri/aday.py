@@ -8,10 +8,10 @@ olmayan bir değer bütün adayı düşürmez; yalnızca o alan silinir ve liste
 """
 
 from dataclasses import dataclass, field
-import math
 from typing import Any, Final
 
 from cekirdek.hatalar import GecersizDegerHatasi
+from cekirdek.sayilar import gecerli_sayi_mi
 from elektronik.parcalar.alan_tanimlari import alan_tanimlari
 from elektronik.parcalar.kayit import parca_sinifi
 from elektronik.parcalar.parca import Parca
@@ -39,7 +39,7 @@ class DonusturulenAday:
 
 
 def _sayi_mi(deger: Any) -> bool:
-    return isinstance(deger, (int, float)) and not isinstance(deger, bool) and math.isfinite(deger)
+    return gecerli_sayi_mi(deger)
 
 
 def _ture_uydur(cins: str, deger: Any, secenekler: set[str]) -> tuple[bool, Any]:
