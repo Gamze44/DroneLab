@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>DroneLab Kullanım Kılavuzu</title>
+<!--
+  DroneLab kullanım kılavuzu: A4 yatay, iki yüzlü, üç panelli (C katlama) broşür.
+  1. sayfa dış yüz (sol: içe katlanan kapak, orta: arka kapak, sağ: ön kapak),
+  2. sayfa iç yüz (broşür tamamen açılınca soldan sağa okunan üç panel).
+  İçe katlanan panel 3 mm dardır; katlanınca kenara sıkışmaz.
+  Yazdırma: A4 yatay, gerçek boyut (%100), iki taraflı, "kısa kenardan çevir".
+  DEĞİŞTİRİLEBİLİR: Metinler doğrudan bu dosyada; renkler :root içinde.
+-->
+<style>
+  @page { size: A4 landscape; margin: 0; }
+
+  :root {
+    --lacivert: #0b1a33;
+    --lacivert-2: #13284d;
+    --vurgu: #2f6fe4;
+    --camgobegi: #0aa5c2;
+    --camgobegi-acik: #22d3ee;
+    --yazi: #1b2433;
+    --soluk: #5b6678;
+    --cizgi: #d5dce8;
+    --zemin: #eef3fb;
+    --basari: #16a34a;
+    --uyari: #c98a06;
+    --hata: #dc2626;
+    --katlama: #8a96aa;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: #c9cfd9;
+    color: var(--yazi);
+    font-family: "Segoe UI", system-ui, sans-serif;
+    font-size: 8.4pt;
+    line-height: 1.38;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .sayfa {
+    width: 297mm;
+    height: 210mm;
+    margin: 10mm auto;
+    background: #fff;
+    position: relative;
+    display: grid;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    break-after: page;
+  }
+  .sayfa:last-child { break-after: auto; }
+  /* İçe katlanan panel dar: dış yüzde solda, iç yüzde sağda durur (kısa kenardan çevirince üst üste gelir). */
+  .dis { grid-template-columns: 97mm 100mm 100mm; }
+  .ic  { grid-template-columns: 100mm 100mm 97mm; }
+
+  @media print {
+    body { background: #fff; }
+    .sayfa { margin: 0; box-shadow: none; }
+  }
+
+  /* ---------- Katlama çizgileri ---------- */
+  .katlama {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    border-left: 0.3mm dashed var(--katlama);
+    z-index: 5;
+  }
+  .katlama::before, .katlama::after {
+    content: "";
+    position: absolute;
+    left: -2.2mm;
+    width: 4.4mm;
+    height: 0;
+    border-top: 0.35mm solid var(--katlama);
+  }
+  .katlama::before { top: 3mm; }
+  .katlama::after { bottom: 3mm; }
+  .katlama span {
+    position: absolute;
+    top: 5mm;
+    left: 1mm;
+    font-size: 5.2pt;
+    letter-spacing: 0.12em;
+    color: var(--katlama);
+    writing-mode: vertical-rl;
+    text-transform: uppercase;
+  }
+
+  /* ---------- Panel ---------- */
+  .panel {
+    padding: 10mm 8.5mm 9mm;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .etiket {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 6.4pt;
+    letter-spacing: 0.14em;
+    color: var(--camgobegi);
+    margin: 0 0 1.2mm;
+    text-transform: uppercase;
+  }
+  h2 {
+    font-size: 13pt;
+    margin: 0 0 2.4mm;
+    color: var(--lacivert);
+    line-height: 1.15;
+  }
+  h3 {
+    font-size: 9.4pt;
+    margin: 3.6mm 0 1.2mm;
+    color: var(--lacivert);
+    display: flex;
+    align-items: center;
+    gap: 2mm;
+  }
+  h3:first-child { margin-top: 0; }
+  p { margin: 0 0 1.6mm; }
+  ul, ol { margin: 0 0 1.6mm; padding-left: 4.2mm; }
+  li { margin-bottom: 0.9mm; }
+  li::marker { color: var(--vurgu); }
+  b { color: var(--lacivert); }
+  .soluk { color: var(--soluk); }
+  .kucuk { font-size: 7.2pt; }
+
+  code {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 6.9pt;
+    background: var(--zemin);
+    border: 0.2mm solid var(--cizgi);
+    border-radius: 1mm;
+    padding: 0 0.8mm;
+    white-space: nowrap;
+  }
+  .komut {
+    display: block;
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 6.6pt;
+    background: var(--lacivert);
+    color: #dbe7ff;
+    border-radius: 1.5mm;
+    padding: 1.6mm 2.2mm;
+    margin: 1mm 0 2mm;
+    white-space: nowrap;
+  }
+
+  /* Ekrandaki düğmelerin benzeri: kullanıcı ekranda aynı yazıyı arar. */
+  .dugme {
+    display: inline-block;
+    background: var(--vurgu);
+    color: #fff;
+    font-weight: 600;
+    font-size: 7pt;
+    border-radius: 1.2mm;
+    padding: 0 1.4mm;
+    line-height: 1.55;
+    white-space: nowrap;
+  }
+  .dugme.ikincil { background: #fff; color: var(--vurgu); border: 0.25mm solid var(--vurgu); }
+  .tus {
+    display: inline-block;
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 6.8pt;
+    border: 0.25mm solid #9aa6b8;
+    border-bottom-width: 0.6mm;
+    border-radius: 1mm;
+    padding: 0 1.1mm;
+    background: #fff;
+    line-height: 1.45;
+  }
+
+  .no {
+    display: inline-grid;
+    place-items: center;
+    width: 6.2mm;
+    height: 6.2mm;
+    border-radius: 1.4mm;
+    background: var(--vurgu);
+    color: #fff;
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 7pt;
+    font-weight: 700;
+    flex: none;
+  }
+  .adim-baslik { display: flex; align-items: center; gap: 2.4mm; margin: 0 0 2.2mm; }
+  .adim-baslik h2 { margin: 0; }
+  .adim-baslik .no { width: 8mm; height: 8mm; font-size: 8.5pt; border-radius: 1.8mm; }
+  .adim-baslik.sonraki { margin-top: 4.5mm; }
+
+  .kutu {
+    background: var(--zemin);
+    border-left: 0.9mm solid var(--camgobegi);
+    border-radius: 0 1.6mm 1.6mm 0;
+    padding: 2mm 2.6mm;
+    margin: 2mm 0;
+  }
+  .kutu h4 { margin: 0 0 0.8mm; font-size: 8.4pt; color: var(--lacivert); }
+  .kutu p:last-child, .kutu ul:last-child { margin-bottom: 0; }
+  .kutu.uyari { border-left-color: var(--uyari); background: #fdf6e3; }
+
+  .cipler { display: flex; flex-wrap: wrap; gap: 1.2mm; margin: 1mm 0 2mm; }
+  .cip {
+    border: 0.25mm solid var(--vurgu);
+    color: var(--vurgu);
+    border-radius: 5mm;
+    padding: 0.2mm 2mm;
+    font-size: 6.9pt;
+    font-weight: 600;
+  }
+  .cip.zip { border-color: var(--camgobegi); color: var(--camgobegi); }
+
+  .sirali { list-style: none; padding: 0; counter-reset: s; }
+  .sirali > li { counter-increment: s; position: relative; padding-left: 5.6mm; margin-bottom: 1.4mm; }
+  .sirali > li::before {
+    content: counter(s);
+    position: absolute;
+    left: 0;
+    top: 0.3mm;
+    width: 3.8mm;
+    height: 3.8mm;
+    border-radius: 50%;
+    background: var(--lacivert);
+    color: #fff;
+    font-size: 6pt;
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+  }
+
+  table { border-collapse: collapse; width: 100%; margin: 1mm 0 2mm; }
+  td, th { padding: 0.8mm 1.4mm; border-bottom: 0.2mm solid var(--cizgi); text-align: left; vertical-align: top; }
+  th { font-size: 6.8pt; color: var(--soluk); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+  td.sayi { text-align: right; font-weight: 700; color: var(--vurgu); white-space: nowrap; }
+
+  .isaretler { display: grid; grid-template-columns: 5mm 1fr; gap: 0.9mm 1.4mm; margin: 1mm 0 2mm; align-items: center; }
+  .isaret {
+    width: 5mm; height: 5mm; border-radius: 1.2mm; display: grid; place-items: center;
+    font-weight: 700; font-size: 7.8pt; color: #fff;
+  }
+  .i-uygun { background: var(--basari); }
+  .i-dikkat { background: var(--uyari); }
+  .i-uyumsuz { background: var(--hata); }
+  .i-bilinmiyor { background: #8a96aa; }
+  .rozet {
+    display: inline-block; font-size: 6.4pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--uyari); border: 0.25mm solid var(--uyari); border-radius: 1mm; padding: 0 1mm;
+  }
+
+  /* Sekme haritası (drone sayfasının sol menüsü) */
+  .harita { list-style: none; padding: 0; margin: 1mm 0 1.4mm; display: grid; gap: 0.7mm; }
+  .harita li {
+    display: flex; align-items: center; gap: 2mm; margin: 0;
+    border: 0.25mm solid var(--cizgi); border-radius: 1.4mm; padding: 0.5mm 1.4mm; background: #fff;
+  }
+  .harita li .no { width: 4.8mm; height: 4.8mm; font-size: 6.2pt; }
+  .harita li span.ne { color: var(--soluk); font-size: 6.9pt; margin-left: auto; text-align: right; }
+
+  .alt-bilgi {
+    margin-top: auto;
+    padding-top: 2.4mm;
+    border-top: 0.25mm solid var(--cizgi);
+    font-size: 6.6pt;
+    color: var(--soluk);
+    display: flex;
+    justify-content: space-between;
+    gap: 2mm;
+  }
+
+  .sekil { display: block; margin: 1.6mm auto 1mm; }
+
+  /* ---------- Ön kapak ---------- */
+  .kapak { padding: 6mm; }
+  .kapak-ic {
+    flex: 1;
+    border-radius: 4mm;
+    background:
+      radial-gradient(70mm 55mm at 20% 0%, rgba(79, 140, 255, 0.35), transparent 70%),
+      radial-gradient(60mm 50mm at 100% 45%, rgba(34, 211, 238, 0.22), transparent 70%),
+      linear-gradient(180deg, var(--lacivert-2), var(--lacivert));
+    color: #e8ecf3;
+    padding: 8mm 7.5mm 7mm;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+  .kapak .etiket { color: var(--camgobegi-acik); font-size: 5.9pt; }
+  .marka { display: flex; align-items: center; gap: 2.6mm; margin: 4mm 0 0; }
+  .marka svg { width: 11mm; height: 11mm; color: var(--camgobegi-acik); }
+  .marka-adi { font-size: 25pt; font-weight: 700; letter-spacing: 0.01em; color: #fff; line-height: 1; }
+  .kapak-baslik {
+    margin: 3.4mm 0 0;
+    font-size: 10pt;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: #9fc1ff;
+    font-weight: 600;
+  }
+  .kapak-sekil { margin: 8mm auto 6mm; width: 70mm; height: 70mm; }
+  .slogan { font-size: 11.5pt; font-weight: 600; color: #fff; margin: 0 0 2mm; line-height: 1.3; }
+  .slogan i { font-style: normal; color: var(--camgobegi-acik); }
+  .kapak p.tanim { color: #b8c4d8; font-size: 8pt; margin: 0; }
+  .kapak-alt {
+    margin-top: auto;
+    display: flex;
+    justify-content: space-between;
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 6pt;
+    letter-spacing: 0.1em;
+    color: #8fa2c2;
+    border-top: 0.25mm solid rgba(159, 193, 255, 0.25);
+    padding-top: 2.4mm;
+  }
+</style>
+</head>
+<body>
+
+<!-- ======================= 1. SAYFA: DIŞ YÜZ ======================= -->
+<section class="sayfa dis" aria-label="Dış yüz">
+  <div class="katlama" style="left:97mm"><span>katlama çizgisi</span></div>
+  <div class="katlama" style="left:197mm"><span>katlama çizgisi</span></div>
+
+  <!-- Sol: içe katlanan kapak (kapağı açınca ilk görülen) -->
+  <div class="panel">
+    <div class="etiket">// Başlarken</div>
+    <h2>Programı aç</h2>
+    <ul>
+      <li><b>Masaüstünden:</b> DroneLab kısayoluna çift tıkla. Program kendi penceresinde açılır; pencereyi kapatınca program da kapanır.</li>
+      <li><b>Kısayol yoksa:</b> proje klasöründe bir kez şunu çalıştır:
+        <span class="komut">.venv\Scripts\python.exe -m araclar.kisayol_olustur</span></li>
+      <li><b>Tarayıcıda açmak için:</b>
+        <span class="komut">.venv\Scripts\python.exe uygulama.py</span>
+        Adres: <code>127.0.0.1:8000</code> (yalnızca kendi bilgisayarından açılır).</li>
+    </ul>
+
+    <h3>Yeni drone oluştur</h3>
+    <p>Ana sayfada <b>Sıfırdan drone yap</b> ya da <b>Elimdeki drone'u geliştir</b> kartını seç.</p>
+    <ol class="sirali">
+      <li><b>Drone adı</b>: istediğin bir ad yaz.</li>
+      <li><b>Tür</b>: Quadcopter (4), Hexacopter (6) ya da Oktokopter (8 motor).</li>
+      <li><b>Kullanım amacı</b>: FPV yarış, serbest uçuş, çekim, yük taşıma, yarışma… Hedefler bu seçime göre belirlenir.</li>
+      <li><b>Yarışma şartnamesi</b>: isteğe bağlı; sonra da eklenebilir.</li>
+    </ol>
+    <p><span class="dugme">Oluştur ve devam et</span>'e bas. Eski dronelarına <b>Kayıtlı drone'u geliştir</b> kartından ulaşırsın.</p>
+
+    <h3>Drone sayfası: 7 adım</h3>
+    <ul class="harita">
+      <li><span class="no">01</span>Şasi<span class="ne">dosya, ölçü, ağırlık</span></li>
+      <li><span class="no">02</span>Elektronik<span class="ne">motor, pil, ESC…</span></li>
+      <li><span class="no">03</span>Hedefler ve itki<span class="ne">süre, yük, bütçe</span></li>
+      <li><span class="no">04</span>Uyum kontrolleri<span class="ne">parçalar uyuşuyor mu</span></li>
+      <li><span class="no">05</span>Uçuş hesabı<span class="ne">itki, süre, gaz</span></li>
+      <li><span class="no">06</span>Maliyet<span class="ne">fiyat, kur, toplam</span></li>
+      <li><span class="no">07</span>Şartname<span class="ne">yarışma kuralları</span></li>
+    </ul>
+    <p class="kucuk soluk">Üstteki özet şeridinde ağırlık, itki/ağırlık, uçuş süresi, maliyet ve uyum sonucu sürekli görünür.</p>
+  </div>
+
+  <!-- Orta: arka kapak -->
+  <div class="panel">
+    <div class="etiket">// DroneLab Asistan</div>
+    <h2>Takıldığın yerde sor</h2>
+    <p>Asistanı başlıktaki <span class="dugme">Asistan</span> düğmesi, sağ alttaki yuvarlak düğme ya da <span class="tus">Ctrl</span> + <span class="tus">K</span> ile aç. <span class="tus">Esc</span> ile kapat.</p>
+    <ul>
+      <li>Açık olan drone'un verilerini bilir. Sayıları kendisi uydurmaz; programın hesaplarından okur.</li>
+      <li>Bir değişiklik önerirse önce/sonra değerlerini gösteren bir kart açılır. <span class="dugme">Uygula</span>'ya basmadıkça drone'unda hiçbir şey değişmez.</li>
+      <li><b>Ayarlar</b> sayfasında Gemini API anahtarını bir kez gir. Model için <b>Otomatik (önerilen)</b> seçili kalsın; bir modelin kotası dolarsa program sıradakine kendisi geçer.</li>
+    </ul>
+
+    <div class="etiket" style="margin-top:3.4mm">// Bilmen gerekenler</div>
+    <h2>İşaretler</h2>
+    <div class="isaretler">
+      <span class="isaret i-uygun">✓</span><span><b>Uygun</b>: kontrol geçti.</span>
+      <span class="isaret i-dikkat">!</span><span><b>Dikkat</b>: çalışır ama sınıra yakın.</span>
+      <span class="isaret i-uyumsuz">✗</span><span><b>Uyumsuz</b>: bu haliyle olmaz.</span>
+      <span class="isaret i-bilinmiyor">?</span><span><b>Değer girilmemiş</b>: program tahmin etmez, boş bırakır.</span>
+    </div>
+    <p><span class="rozet">tahmini</span> etiketli sonuçlar bir varsayıma dayanır (ör. itki tablosu yoksa). Kesin değer için eksik bilgiyi tamamla.</p>
+
+    <ul>
+      <li><b>İnternetsiz çalışır.</b> Bütün hesaplar senin bilgisayarında yapılır. Program internete yalnızca iki iş için çıkar: döviz kurunu almak (günde en çok bir kez) ve Gemini'yi kullanmak (yalnızca sen düğmeye bastığında).</li>
+      <li><b>Verilerin</b> <code>veri\</code> klasöründe durur. Yedek almak için bu klasörü kopyala. Başkasıyla paylaşacaksan önce içindeki <code>gemini_anahtari.txt</code> dosyasını sil.</li>
+    </ul>
+    <div class="kutu uyari">
+      <p><b>DroneLab bir tasarım yardımcısıdır.</b> Uçmadan önce parçaların üretici belgelerini ve bulunduğun yerin uçuş kurallarını kontrol et.</p>
+    </div>
+
+    <div class="alt-bilgi"><span>DroneLab · sürüm 0.1.0</span><span>Ar-Ge çalışması · 2026</span></div>
+  </div>
+
+  <!-- Sağ: ön kapak -->
+  <div class="panel kapak">
+    <div class="kapak-ic">
+      <div class="etiket">// Drone tasarım ve uygunluk sistemi</div>
+      <div class="marka">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/><circle cx="5" cy="5" r="3"/><circle cx="19" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/></g><rect x="9.5" y="9.5" width="5" height="5" rx="1.2" fill="currentColor"/></svg>
+        <span class="marka-adi">DroneLab</span>
+      </div>
+      <div class="kapak-baslik">Kullanım kılavuzu</div>
+
+      <svg class="kapak-sekil" viewBox="0 0 200 200" aria-hidden="true">
+        <g fill="none" stroke="#22d3ee">
+          <circle cx="100" cy="100" r="96" stroke-opacity="0.16"/>
+          <circle cx="100" cy="100" r="72" stroke-opacity="0.22" stroke-dasharray="2 4"/>
+          <circle cx="100" cy="100" r="46" stroke-opacity="0.16"/>
+          <path d="M100 0v14M100 186v14M0 100h14M186 100h14" stroke-opacity="0.45"/>
+        </g>
+        <!-- radar taraması -->
+        <path d="M100 100 L100 4 A96 96 0 0 1 183 52 Z" fill="url(#tarama)"/>
+        <defs>
+          <linearGradient id="tarama" x1="0" y1="0" x2="1" y2="0.5">
+            <stop offset="0" stop-color="#22d3ee" stop-opacity="0"/>
+            <stop offset="1" stop-color="#22d3ee" stop-opacity="0.22"/>
+          </linearGradient>
+        </defs>
+        <!-- kollar -->
+        <g stroke="#c9dcff" stroke-width="7" stroke-linecap="round">
+          <path d="M54 54 L146 146"/><path d="M146 54 L54 146"/>
+        </g>
+        <!-- pervane diskleri -->
+        <g fill="rgba(34,211,238,0.12)" stroke="#22d3ee" stroke-width="1.4">
+          <circle cx="54" cy="54" r="27"/><circle cx="146" cy="54" r="27"/>
+          <circle cx="54" cy="146" r="27"/><circle cx="146" cy="146" r="27"/>
+        </g>
+        <g stroke="#e8f6ff" stroke-width="2.6" stroke-linecap="round" opacity="0.85">
+          <path d="M33 62 L75 46"/><path d="M125 46 L167 62"/>
+          <path d="M33 138 L75 154"/><path d="M125 154 L167 138"/>
+        </g>
+        <g fill="#4f8cff" stroke="#0b1a33" stroke-width="1.5">
+          <circle cx="54" cy="54" r="8"/><circle cx="146" cy="54" r="8"/>
+          <circle cx="54" cy="146" r="8"/><circle cx="146" cy="146" r="8"/>
+        </g>
+        <!-- gövde -->
+        <rect x="82" y="74" width="36" height="52" rx="8" fill="#13284d" stroke="#4f8cff" stroke-width="2"/>
+        <rect x="90" y="86" width="20" height="16" rx="3" fill="#22d3ee" fill-opacity="0.25" stroke="#22d3ee" stroke-width="1"/>
+        <circle cx="100" cy="80" r="3.2" fill="#22d3ee"/>
+        <path d="M100 60 l-5 8 h10 z" fill="#22d3ee"/>
+      </svg>
+
+      <p class="slogan">Drone tasarla <i>—</i> Kontrol et <i>—</i><br>Harekete geç</p>
+      <p class="tanim">Şasini yükle, parçalarını ekle. Program parçaların uyumunu, uçuş süresini, maliyeti ve yarışma şartnamesine uygunluğu senin için hesaplasın.</p>
+
+      <div class="kapak-alt"><span>SÜRÜM 0.1.0</span><span>WINDOWS · YEREL</span><span>AR-GE 2026</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 2. SAYFA: İÇ YÜZ ======================= -->
+<section class="sayfa ic" aria-label="İç yüz">
+  <div class="katlama" style="left:100mm"><span>katlama çizgisi</span></div>
+  <div class="katlama" style="left:200mm"><span>katlama çizgisi</span></div>
+
+  <!-- İç sol: Şasi -->
+  <div class="panel">
+    <div class="etiket">// Adım 01</div>
+    <div class="adim-baslik"><span class="no">01</span><h2>Şasi</h2></div>
+    <p>Şasinin çizim dosyasını yükle. Desteklenen türler:</p>
+    <div class="cipler">
+      <span class="cip">STL</span><span class="cip">OBJ</span><span class="cip">3MF</span><span class="cip">DXF</span><span class="cip zip">ZIP · parçalı</span>
+    </div>
+    <ol class="sirali">
+      <li>Dosyanı seç ve <span class="dugme">Yükle</span>'ye bas. STL, OBJ ve 3MF 3B model, DXF levha şasi içindir.</li>
+      <li><b>Birimi doğrula.</b> Program dosyadaki ölçüleri gösterir; bu sayıların mm, cm, m ya da inç olduğunu sen seçip <span class="dugme">Birimi onayla</span>'ya basarsın. Birim yanlış seçilirse bütün ölçüler bozulur. Sonradan <b>Birimi değiştir</b> ile düzeltebilirsin.</li>
+      <li><b>Şasi ağırlığını</b> gir: şasiyi tarttığın ya da üreticinin verdiği değer. Program ağırlığı dosyadan tahmin etmez.</li>
+    </ol>
+
+    <div class="kutu">
+      <h4>Parçalı şasi (.zip)</h4>
+      <p>Gövde, kol ve ayak dosyalarını tek bir zip dosyasına koyup yükle. Program her parçanın görevini dosya adından, adedini dosyadaki kopya sayısından tahmin eder. Tahminleri kontrol et ve <span class="dugme">Parçaları kaydet</span>'e bas.</p>
+    </div>
+
+    <h3>Dingil mesafesi</h3>
+    <svg class="sekil" width="64mm" height="34mm" viewBox="0 0 190 100" aria-hidden="true">
+      <g stroke="#b9c4d6" stroke-width="7" stroke-linecap="round"><path d="M40 18 L130 82"/><path d="M130 18 L40 82"/></g>
+      <rect x="70" y="35" width="30" height="30" rx="5" fill="#eef3fb" stroke="#2f6fe4" stroke-width="1.6"/>
+      <g fill="#fff" stroke="#0aa5c2" stroke-width="1.3" stroke-dasharray="3 2">
+        <circle cx="40" cy="18" r="15"/><circle cx="130" cy="18" r="15"/><circle cx="40" cy="82" r="15"/><circle cx="130" cy="82" r="15"/>
+      </g>
+      <g fill="#2f6fe4"><circle cx="40" cy="18" r="4"/><circle cx="130" cy="18" r="4"/><circle cx="40" cy="82" r="4"/><circle cx="130" cy="82" r="4"/></g>
+      <path d="M40 82 L130 18" stroke="#dc2626" stroke-width="1.6" marker-start="url(#ok)" marker-end="url(#ok)"/>
+      <defs><marker id="ok" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#dc2626"/></marker></defs>
+      <text x="138" y="58" font-size="10" fill="#dc2626" font-weight="700" font-family="Segoe UI">dingil</text>
+    </svg>
+    <p>Çapraz iki motorun mil merkezleri arasındaki mesafedir (ör. 5 inç freestyle şaside ≈ 220 mm). Şasiye sığacak en büyük pervane bu değerden bulunur.</p>
+    <ul>
+      <li>Değeri biliyorsan elle yaz ve <span class="dugme">Kaydet</span>'e bas.</li>
+      <li>Bilmiyorsan <b>Gövde ve koldan hesapla</b> → <span class="dugme">Hesapla</span>. Sonucu beğenirsen <span class="dugme">Onayla ve kaydet</span>.</li>
+    </ul>
+    <p class="kucuk soluk"><b>Üstten görünüş</b> şasiyi ve pervaneleri birlikte çizer. Kesikli kutu şasinin dış ölçüsüdür.</p>
+  </div>
+
+  <!-- İç orta: Elektronik + Hedefler -->
+  <div class="panel">
+    <div class="etiket">// Adım 02 – 03</div>
+    <div class="adim-baslik"><span class="no">02</span><h2>Elektronik</h2></div>
+    <p><span class="dugme">+ Parça ekle</span> ile parçalarını tek tek gir:</p>
+    <p class="kucuk">Motor · Pervane · ESC · Pil · Uçuş kartı (FC) · Alıcı · PDB · Diğer (kamera, VTX, GPS, yük…)</p>
+    <ul>
+      <li><b>Marka, model, ağırlık (1 adet) ve adet</b> yeterlidir. Modeli yazmaya başlayınca daha önce girdiğin parçalar katalogdan önerilir.</li>
+      <li><b>Durum</b>: elimde, planlanan ya da önerilen. “Elimde” olan parçalar alınacaklar toplamına ve bütçeye girmez.</li>
+      <li><b>Teknik değerler</b> isteğe bağlıdır. Bilmediğin değeri <b>boş bırak</b>, tahminle doldurma.</li>
+      <li><span class="dugme">✨ Öner</span>: Gemini, drone'undaki diğer parçalara bakıp 3 aday önerir. İnternette arama yapmaz; önerilen değerleri ürün sayfasından doğrula.</li>
+    </ul>
+    <div class="kutu">
+      <h4>Bağlantı şeması</h4>
+      <p>Parçaların birbirine nasıl bağlandığını gösterir. Bir çizginin üzerine gelince o bağlantıyla ilgili kontrolün sonucu görünür. Kesikli kutu, o parçanın henüz eklenmediğini gösterir.</p>
+    </div>
+
+    <div class="adim-baslik sonraki"><span class="no">03</span><h2>Hedefler ve itki</h2></div>
+    <p>Hepsi isteğe bağlıdır: en az <b>uçuş süresi</b> (dk), taşınacak <b>yük</b> (g), <b>bütçe</b> (TL) ve en az <b>itki/ağırlık oranı</b>. Girdiğin yük toplam ağırlığa eklenir.</p>
+    <p class="kucuk">İtki/ağırlık hedefini boş bırakırsan program kullanım amacına göre bir hedef seçer:</p>
+    <table>
+      <tr><th>Kullanım amacı</th><th style="text-align:right">Hedef</th></tr>
+      <tr><td>FPV yarış</td><td class="sayi">7</td></tr>
+      <tr><td>Serbest uçuş (freestyle)</td><td class="sayi">5</td></tr>
+      <tr><td>Çekim · yük taşıma · diğer</td><td class="sayi">2</td></tr>
+    </table>
+    <p><b>Motor itki tablosu</b>: üreticinin test tablosunu (ürün sayfasında bulunur) satır satır gir ve <span class="dugme">Tabloyu kaydet</span>'e bas. Tablo yoksa itki <span class="rozet">tahmini</span> hesaplanır.</p>
+  </div>
+
+  <!-- İç sağ (içe katlanan panelin arkası): Uyum, Uçuş, Maliyet, Şartname -->
+  <div class="panel">
+    <div class="etiket">// Adım 04 – 07</div>
+    <h3><span class="no">04</span>Uyum kontrolleri</h3>
+    <p>13 kontrol parçaları birbirine karşı denetler: pil ↔ motor hücre sayısı, ESC ↔ motor akımı, pervane ↔ şasi, uçuş kartı ↔ ESC montaj ölçüsü ve sinyal protokolü, pil konnektörü… Sonuçlar ✓ ! ✗ ? işaretleriyle gösterilir. <b>Göstergeler</b> ve <b>ağırlık dağılımı</b> da bu sekmededir.</p>
+
+    <h3><span class="no">05</span>Uçuş hesabı</h3>
+    <p>Toplam ağırlığı, itki/ağırlık oranını, havada asılı kalmak için gereken gazı ve uçuş süresini gösterir. Bir değerin üzerine gelince nasıl hesaplandığını görürsün.</p>
+
+    <h3><span class="no">06</span>Maliyet</h3>
+    <p>Her parçanın <b>1 adet</b> fiyatını gir; değiştirdiğin alan hemen kaydedilir. Fiyatı TL, USD, EUR, GBP ya da CNY olarak girebilirsin. Yabancı para birimindeki fiyatlar TCMB kuruyla TL'ye çevrilir ve <span class="rozet">tahmini</span> etiketi alır. Kuru güncellemek için <span class="dugme ikincil">TCMB kurlarını yenile</span>'ye bas. Toplam maliyet bütçe hedefinle karşılaştırılır.</p>
+
+    <h3><span class="no">07</span>Şartname</h3>
+    <ol class="sirali">
+      <li>Yarışma şartnamesini (PDF ya da Word .docx) yükle ya da daha önce yüklediklerinden birini seç.</li>
+      <li><span class="dugme">✨ Gemini ile maddeleri çıkar</span>'a bas.</li>
+      <li>Çıkarılan maddeleri belgeyle karşılaştır, gerekirse düzelt. Ardından <span class="dugme">Hepsini onayla</span> ve <span class="dugme">Maddeleri kaydet</span>'e bas.</li>
+    </ol>
+    <p><b>Uyum raporu</b> drone'unu bu maddelere göre değerlendirir: ✓ uygun · ✗ uygun değil · ? doğrulanamıyor · ℹ yalnızca bilgi (puanlanan kriter).</p>
+    <div class="kutu uyari">
+      <p>Yanlış çıkarılmış tek bir sınır bütün raporu bozar. Maddeleri onaylamadan önce mutlaka belgeyle karşılaştır.</p>
+    </div>
+
+    <div class="alt-bilgi"><span>Takıldığın yerde: <b>Ctrl + K</b></span><span>DroneLab 0.1.0</span></div>
+  </div>
+</section>
+
+</body>
+</html>
