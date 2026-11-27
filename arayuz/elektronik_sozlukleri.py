@@ -93,7 +93,7 @@ def agirlik_sozlugu(a: AgirlikOzeti) -> dict[str, Any]:
     return {
         "sasi_g": a.sasi_g, "parcalar_g": a.parcalar_g, "yuk_g": a.yuk_g, "kablo_payi_g": a.kablo_payi_g,
         "toplam_g": a.toplam_g, "agirligi_eksik_parcalar": a.agirligi_eksik_parcalar,
-        "tahmini": a.tahmini, "eksiksiz_mi": a.eksiksiz_mi,
+        "tahmini": a.tahmini, "eksiksiz_mi": a.eksiksiz_mi, "kablo_payi_elle_mi": a.kablo_payi_elle_mi,
     }
 
 
@@ -138,4 +138,5 @@ def sasi_gorunumu_sozlugu(g: SasiGorunumu | None) -> dict[str, Any] | None:
 
 def hedef_sozlugu(h: DroneHedefleri) -> dict[str, Any]:
     """Drone hedeflerini sözlüğe çevirir."""
-    return {"ucus_suresi_dk": h.ucus_suresi_dk, "yuk_g": h.yuk_g, "butce_tl": h.butce_tl, "itki_agirlik": h.itki_agirlik}
+    return {"ucus_suresi_dk": h.ucus_suresi_dk, "yuk_g": h.yuk_g, "butce_tl": h.butce_tl, "itki_agirlik": h.itki_agirlik,
+            "kablo_vida_g": h.kablo_vida_g}

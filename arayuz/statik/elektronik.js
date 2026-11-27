@@ -68,8 +68,8 @@ function ozetiCiz() {
   const satirlar = [
     ["Şasi", a.sasi_g != null ? g(a.sasi_g) : "girilmedi (Şasi sekmesinden girin)"],
     ["Parçalar (ağırlığı bilinenler)", g(a.parcalar_g)],
-    ["Kablo, vida vb. payı (tahmini)", g(a.kablo_payi_g)],
-    [a.eksiksiz_mi ? "Toplam (tahmini)" : "Toplam (eksik, tahmini)", g(a.toplam_g)],
+    [a.kablo_payi_elle_mi ? "Kablo, vida vb. (tartılmış)" : "Kablo, vida vb. payı (tahmini)", g(a.kablo_payi_g)],
+    [`Toplam${a.eksiksiz_mi ? "" : " (eksik)"}${a.tahmini ? " (tahmini)" : ""}`, g(a.toplam_g)],
   ];
   tabloDoldur("agirlik-tablosu", satirlar);
 

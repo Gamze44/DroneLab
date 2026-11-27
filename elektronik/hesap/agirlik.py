@@ -2,6 +2,8 @@
 Toplam ağırlık hesabı.
 
 Toplam = şasi + Σ(parça ağırlığı × adet) + yük + kablo/vida payı.
+Kablo/vida payı kullanıcı tartıp girdiyse o değerdir; girmediyse şasi + parça ağırlığının
+bir oranı olarak tahmin edilir.
 Ağırlığı girilmemiş parçalar toplama katılmaz ve ayrıca listelenir; böylece
 toplamın eksik olduğu kullanıcıdan gizlenmez.
 """
@@ -26,10 +28,11 @@ class AgirlikOzeti:
         sasi_g: Şasi ağırlığı; girilmediyse None.
         parcalar_g: Ağırlığı bilinen parçaların toplamı (adetle çarpılmış).
         yuk_g: Taşınacak yük.
-        kablo_payi_g: Tahmini kablo/vida payı.
+        kablo_payi_g: Kablo/vida payı (tartılmış ya da tahmini).
         toplam_g: Hepsinin toplamı (eksik ağırlıklar hariç).
         agirligi_eksik_parcalar: Ağırlığı girilmemiş parçaların görünen adları.
-        tahmini: Kablo payı eklendiyse True.
+        tahmini: Tahmini kablo payı eklendiyse True.
+        kablo_payi_elle_mi: Kablo/vida payı kullanıcının tarttığı değerse True.
     """
 
     sasi_g: float | None
@@ -39,6 +42,7 @@ class AgirlikOzeti:
     toplam_g: float
     agirligi_eksik_parcalar: list[str] = field(default_factory=list)
     tahmini: bool = False
+    kablo_payi_elle_mi: bool = False
 
     @property
     def eksiksiz_mi(self) -> bool:
@@ -57,7 +61,13 @@ class AgirlikHesaplayici:
     def __init__(self, kablo_payi_orani: float = KABLO_PAYI_ORANI) -> None:
         self.kablo_payi_orani: float = kablo_payi_orani
 
-    def hesapla(self, sasi_g: float | None, kalemler: list[tuple[Parca, int]], yuk_g: float = 0.0) -> AgirlikOzeti:
+    def hesapla(
+        self,
+        sasi_g: float | None,
+        kalemler: list[tuple[Parca, int]],
+        yuk_g: float = 0.0,
+        kablo_vida_g: float | None = None,
+    ) -> AgirlikOzeti:
         """
         Toplam ağırlığı hesaplar.
 
@@ -65,6 +75,7 @@ class AgirlikHesaplayici:
             sasi_g: Şasi ağırlığı, gram; bilinmiyorsa None.
             kalemler: (parça, adet) listesi.
             yuk_g: Taşınacak yük, gram.
+            kablo_vida_g: Tartılmış kablo/vida ağırlığı, gram; None ise oranla tahmin edilir.
         Dönüş:
             AgirlikOzeti.
         """
@@ -76,7 +87,8 @@ class AgirlikHesaplayici:
             else:
                 parcalar_g += parca.agirlik_g * adet
         # Yük bir paket olarak tartıldığı için kablo payına katılmaz.
-        kablo_payi_g = (parcalar_g + (sasi_g or 0.0)) * self.kablo_payi_orani
+        elle = kablo_vida_g is not None
+        kablo_payi_g = kablo_vida_g if elle else (parcalar_g + (sasi_g or 0.0)) * self.kablo_payi_orani
         toplam = (sasi_g or 0.0) + parcalar_g + yuk_g + kablo_payi_g
         return AgirlikOzeti(
             sasi_g=sasi_g,
@@ -85,5 +97,6 @@ class AgirlikHesaplayici:
             kablo_payi_g=kablo_payi_g,
             toplam_g=toplam,
             agirligi_eksik_parcalar=eksikler,
-            tahmini=kablo_payi_g > 0,
+            tahmini=not elle and kablo_payi_g > 0,
+            kablo_payi_elle_mi=elle,
         )

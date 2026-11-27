@@ -82,6 +82,7 @@ class HedefIstegi(BaseModel):
     yuk_g: float | None = None
     butce_tl: float | None = None
     itki_agirlik: float | None = None
+    kablo_vida_g: float | None = None
 
 
 class ParcaIstegi(BaseModel):
@@ -306,9 +307,10 @@ def drone_rotalarini_olustur(servis: DroneServisi) -> APIRouter:
 
     @rotalar.put("/dronelar/{kimlik}/hedefler")
     def hedefleri_kaydet(kimlik: Kimlik, istek: HedefIstegi) -> dict[str, Any]:
-        """Drone hedeflerini (uçuş süresi, yük, bütçe) kaydeder."""
+        """Drone hedeflerini (uçuş süresi, yük, bütçe, itki/ağırlık, kablo/vida ağırlığı) kaydeder."""
         hedefler = DroneHedefleri(
-            ucus_suresi_dk=istek.ucus_suresi_dk, yuk_g=istek.yuk_g, butce_tl=istek.butce_tl, itki_agirlik=istek.itki_agirlik
+            ucus_suresi_dk=istek.ucus_suresi_dk, yuk_g=istek.yuk_g, butce_tl=istek.butce_tl, itki_agirlik=istek.itki_agirlik,
+            kablo_vida_g=istek.kablo_vida_g,
         )
         return hedef_sozlugu(servis.hedefleri_kaydet(kimlik, hedefler))
 

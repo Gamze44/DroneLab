@@ -103,7 +103,9 @@ class AdayDegerlendirici:
         for s in sonuclar:
             sayilar[s.durum.value] = sayilar.get(s.durum.value, 0) + 1
         hedefler = hedefler or DroneHedefleri()
-        agirlik = self._agirlik.hesapla(drone.sasi_agirlik_g, yeni, yuk_g=hedefler.yuk_g or 0.0)
+        agirlik = self._agirlik.hesapla(
+            drone.sasi_agirlik_g, yeni, yuk_g=hedefler.yuk_g or 0.0, kablo_vida_g=hedefler.kablo_vida_g
+        )
         ucus = self._ucus.hesapla(
             yeni, drone.motor_sayisi, drone.amac, agirlik, hedefler.ucus_suresi_dk, hedefler.itki_agirlik
         )

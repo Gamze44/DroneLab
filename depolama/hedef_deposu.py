@@ -24,14 +24,16 @@ class HedefDeposu:
         if s is None:
             return DroneHedefleri()
         return DroneHedefleri(
-            ucus_suresi_dk=s["ucus_suresi_dk"], yuk_g=s["yuk_g"], butce_tl=s["butce_tl"], itki_agirlik=s["itki_agirlik"]
+            ucus_suresi_dk=s["ucus_suresi_dk"], yuk_g=s["yuk_g"], butce_tl=s["butce_tl"], itki_agirlik=s["itki_agirlik"],
+            kablo_vida_g=s["kablo_vida_g"],
         )
 
     def kaydet(self, drone_kimlik: int, hedefler: DroneHedefleri) -> None:
         """Drone'un hedeflerini yazar (öncekinin yerine geçer)."""
         with self._vt.baglanti() as bag:
             bag.execute(
-                "INSERT OR REPLACE INTO drone_hedefleri (drone_kimlik, ucus_suresi_dk, yuk_g, butce_tl, itki_agirlik) "
-                "VALUES (?, ?, ?, ?, ?)",
-                (drone_kimlik, hedefler.ucus_suresi_dk, hedefler.yuk_g, hedefler.butce_tl, hedefler.itki_agirlik),
+                "INSERT OR REPLACE INTO drone_hedefleri (drone_kimlik, ucus_suresi_dk, yuk_g, butce_tl, itki_agirlik, kablo_vida_g) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (drone_kimlik, hedefler.ucus_suresi_dk, hedefler.yuk_g, hedefler.butce_tl, hedefler.itki_agirlik,
+                 hedefler.kablo_vida_g),
             )

@@ -74,6 +74,10 @@ _DEGISIKLIK_SEMASI: Final[dict[str, Any]] = {
                 "type": "number",
                 "description": "Yeni itki/ağırlık hedefi, birimsiz, 1'den büyük (hedef_degistir).",
             },
+            "kablo_vida_g": {
+                "type": "number",
+                "description": "Tartılmış kablo/vida ağırlığı, gram; tahmini payın yerine geçer (hedef_degistir).",
+            },
         },
         "required": ["islem"],
     },
@@ -101,7 +105,8 @@ def _hesap(h: HesapDegeri) -> dict[str, Any]:
 def _agirlik(a: AgirlikOzeti) -> dict[str, Any]:
     return {
         "toplam_g": a.toplam_g, "sasi_g": a.sasi_g, "parcalar_g": a.parcalar_g, "yuk_g": a.yuk_g,
-        "kablo_payi_g": a.kablo_payi_g, "tahmini": a.tahmini, "agirligi_eksik_parcalar": a.agirligi_eksik_parcalar,
+        "kablo_payi_g": a.kablo_payi_g, "kablo_payi_elle_mi": a.kablo_payi_elle_mi, "tahmini": a.tahmini,
+        "agirligi_eksik_parcalar": a.agirligi_eksik_parcalar,
     }
 
 

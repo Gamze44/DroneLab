@@ -90,7 +90,8 @@ class BaglamToplayici:
             f"Açık drone: \"{d.ad}\"; {DRONE_TURU_ADLARI[d.drone_turu]}; amaç: {d.amac}; "
             f"{BASLANGIC_TURU_ADLARI[d.baslangic_turu]}.",
             f"Parça satırı: {len(ozet.kalemler)}. Eksik zorunlu parça: {', '.join(eksikler) or 'yok'}.",
-            f"Toplam ağırlık: {sayi_yaz(a.toplam_g)} g{TAHMINI_EKI if a.tahmini else ''}. "
+            f"Toplam ağırlık: {sayi_yaz(a.toplam_g)} g{TAHMINI_EKI if a.tahmini else ''} "
+            f"(kablo/vida {sayi_yaz(a.kablo_payi_g)} g, {'tartılmış' if a.kablo_payi_elle_mi else 'tahmini pay'}). "
             f"İtki/ağırlık: {_deger(ozet.ucus.itki_agirlik_orani)}. Uçuş süresi: {_deger(ozet.ucus.ucus_suresi_dk, ' dk')}.",
             "Uyum: " + ", ".join(f"{sayilar[durum]} {durum.value}" for durum in UyumDurumu) + ".",
             f"Hedefler: uçuş süresi {sayi_yaz(h.ucus_suresi_dk) if h.ucus_suresi_dk else YOK} dk; "

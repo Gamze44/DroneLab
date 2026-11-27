@@ -60,7 +60,9 @@ class TasarimHesaplayici:
         Dönüş:
             TasarimSonucu.
         """
-        agirlik = self._agirlik.hesapla(drone.sasi_agirlik_g, parca_adetleri, yuk_g=hedefler.yuk_g or 0.0)
+        agirlik = self._agirlik.hesapla(
+            drone.sasi_agirlik_g, parca_adetleri, yuk_g=hedefler.yuk_g or 0.0, kablo_vida_g=hedefler.kablo_vida_g
+        )
         return TasarimSonucu(
             zorunluluklar=self._zorunlu.denetle(parca_adetleri, drone.motor_sayisi, drone.amac),
             agirlik=agirlik,

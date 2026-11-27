@@ -48,7 +48,7 @@ function ozetiYaz(o, m, s) {
 
   // Ağırlık
   ozetKutusu("oz-agirlik", a.toplam_g > 0 ? `${sayiBicimle(a.toplam_g, OZET_AGIRLIK_BASAMAK)} g` : "–",
-    a.toplam_g <= 0 ? "ağırlık girilmedi" : a.eksiksiz_mi ? "tahmini (kablo payı dahil)" : "eksik: bazı ağırlıklar yok",
+    a.toplam_g <= 0 ? "ağırlık girilmedi" : a.eksiksiz_mi ? (a.tahmini ? "tahmini (kablo payı dahil)" : "tartılmış kablo/vida dahil") : "eksik: bazı ağırlıklar yok",
     a.toplam_g > 0 && !a.eksiksiz_mi ? "dikkat" : null);
 
   // İtki / ağırlık

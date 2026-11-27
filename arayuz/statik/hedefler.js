@@ -1,4 +1,4 @@
-// "Hedefler ve itki" sekmesi: drone hedefleri (uçuş süresi, yük, bütçe, itki/ağırlık) ve
+// "Hedefler ve itki" sekmesi: drone hedefleri (uçuş süresi, yük, bütçe, itki/ağırlık, kablo/vida) ve
 // drone'daki motorların itki tablosu. elektronik.js'ten sonra yüklenir
 // (elektronikOzeti ve elektronikOzetiniYenile oradadır).
 "use strict";
@@ -27,11 +27,23 @@ function hedeflerSekmesiniAc() {
   $("hd-oran-aciklama").textContent =
     `Boş bırakırsan "${mevcutDrone.amac}" amacına göre ${varsayilan} hedeflenir. Sakin uçuş ve çekim için 2–3, ` +
     "freestyle için 4–8, yarış için 8 ve üstü yaygındır. 2'nin altı güvenli kalkış için önerilmez.";
+  $("hd-kablo").value = h.kablo_vida_g ?? "";
+  kabloIpucunuYaz();
+  $("hd-kablo-aciklama").textContent =
+    "Boş bırakırsan program kablo, vida, lehim ve bant için şasi + parça ağırlığının küçük bir oranını " +
+    "tahmini pay olarak ekler. Bunları tartıp gram olarak girersen tahmin yerine senin değerin kullanılır.";
   // Drone bilgisi drone.js'teki mevcutDrone'dan okunur; ekrandaki metin değişse de bozulmaz.
   $("hedef-drone-bilgisi").textContent = `Drone: ${droneTanimi(mevcutDrone)} · ${elektronikOzeti.motor_sayisi} motor`;
   goster("hedef-hatasi", false);
   $("hedef-durumu").textContent = "";
   motorSeciciniKur();
+}
+
+// Kablo/vida kutusu boşken programın tahmin ettiği pay ipucu olarak gösterilir. Tartılmış değer
+// kayıtlıyken tahmin hesaplanmadığı için genel bir ipucu yazılır.
+function kabloIpucunuYaz() {
+  const a = elektronikOzeti.agirlik;
+  $("hd-kablo").placeholder = a.kablo_payi_elle_mi ? "boşsa tahmini pay" : `boşsa ≈ ${sayiBicimle(a.kablo_payi_g, 0)} (tahmini)`;
 }
 
 // Kimliği verilen girdideki sayıyı okur; boşsa null, sayı değilse kullanıcıya gösterilecek hata fırlatır.
@@ -50,10 +62,12 @@ $("hedef-formu").addEventListener("submit", async (olay) => {
       yuk_g: girdiSayisiOku("hd-yuk", "Yük"),
       butce_tl: girdiSayisiOku("hd-butce", "Bütçe"),
       itki_agirlik: girdiSayisiOku("hd-oran", "İtki/ağırlık hedefi"),
+      kablo_vida_g: girdiSayisiOku("hd-kablo", "Kablo ve vida ağırlığı"),
     };
     await istekGonder(`/api/dronelar/${droneKimligi}/hedefler`, jsonIstegi("PUT", govde));
     $("hedef-durumu").textContent = "Kaydedildi.";
     await elektronikOzetiniYenile();
+    kabloIpucunuYaz();
   } catch (veri) {
     hataGoster("hedef-hatasi", veri);
   }

@@ -24,7 +24,7 @@ from elektronik.parcalar.parca import Parca
 from elektronik.servis import ElektronikServisi
 from elektronik.zorunlu_parcalar import ZorunlulukDurumu
 
-HEDEF_ALANLARI: Final[tuple[str, ...]] = ("ucus_suresi_dk", "yuk_g", "butce_tl", "itki_agirlik")
+HEDEF_ALANLARI: Final[tuple[str, ...]] = ("ucus_suresi_dk", "yuk_g", "butce_tl", "itki_agirlik", "kablo_vida_g")
 
 
 class DegisiklikTuru(str, Enum):
@@ -47,7 +47,8 @@ class Degisiklik:
         parca_kimlik: Katalogdaki parça (parca_ekle, parca_degistir).
         bag_kimlik: Drone'daki parça satırı (parca_degistir, adet_degistir, parca_cikar).
         adet: Adet (parca_ekle, adet_degistir; parca_degistir'de verilmezse eski adet).
-        ucus_suresi_dk, yuk_g, butce_tl, itki_agirlik: Yeni hedefler (hedef_degistir; verilmeyen aynı kalır).
+        ucus_suresi_dk, yuk_g, butce_tl, itki_agirlik, kablo_vida_g: Yeni hedefler (hedef_degistir;
+            verilmeyen aynı kalır).
     """
 
     islem: DegisiklikTuru
@@ -58,6 +59,7 @@ class Degisiklik:
     yuk_g: float | None = None
     butce_tl: float | None = None
     itki_agirlik: float | None = None
+    kablo_vida_g: float | None = None
 
     @classmethod
     def sozlukten(cls, ham: Any) -> "Degisiklik":
@@ -97,7 +99,7 @@ class Degisiklik:
         if eksik:
             raise GecersizDegerHatasi(f"{self.islem.value} için şu alanlar gerekli: {', '.join(eksik)}.")
         if self.islem is DegisiklikTuru.HEDEF_DEGISTIR and all(getattr(self, a) is None for a in HEDEF_ALANLARI):
-            raise GecersizDegerHatasi("hedef_degistir için en az bir hedef (ucus_suresi_dk, yuk_g, butce_tl, itki_agirlik) verin.")
+            raise GecersizDegerHatasi(f"hedef_degistir için en az bir hedef ({', '.join(HEDEF_ALANLARI)}) verin.")
         if self.adet is not None and not 1 <= self.adet <= EN_FAZLA_ADET:
             raise GecersizDegerHatasi(f"Adet 1 ile {EN_FAZLA_ADET} arasında olmalı.")
 

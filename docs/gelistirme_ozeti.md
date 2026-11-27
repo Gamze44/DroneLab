@@ -188,7 +188,8 @@ veri/                      Veritabanı, şasi ve şartname dosyaları, anahtar, 
 
 **Uçuş hesabı**
 
-- Toplam ağırlık = şasi + parçalar + %5 kablo payı + yük.
+- Toplam ağırlık = şasi + parçalar + kablo/vida + yük. Kablo/vida Hedefler sekmesinde tartılıp gram olarak
+  girilebilir; girilmezse şasi + parça ağırlığının %5'i tahmini pay olarak eklenir.
 - Motorun itki tablosu varsa değerler tablodan okunur; pilin gerilimine en yakın satırlar seçilir.
 - Tablo yoksa itki T = C_T·ρ·n²·D⁴ ile, asılı kalma gücü momentum teorisiyle tahmin edilir.
 - Uçuş süresi = kapasitenin %80'i / (asılı akım × uçuş tarzı katsayısı); her zaman tahminidir.
@@ -242,6 +243,7 @@ uygulanır; kayıtlı dronelar kaybolmaz.
 | 7 | DroneLab Asistan sohbet geçmişi ve değişiklik önerileri |
 | 8 | Parçalı şasinin parçaları (görev, adet, geometri) |
 | 9 | Drone başına itki/ağırlık hedefi |
+| 10 | Drone başına tartılmış kablo/vida ağırlığı |
 
 ## 10. Bağımlılıklar
 
@@ -253,7 +255,7 @@ Gemini ve TCMB bağlantıları yalnızca Python'un standart kütüphanesiyle yap
 
 ## 11. Testler
 
-Oturum sonunda **260 test** geçiyor.
+Şu an **430 test** geçiyor.
 
 Testlerde gerçek Gemini veya TCMB isteği yapılmaz; sahte sağlayıcılar ve test içinde üretilen
 PDF/Word belgeleri kullanılır. Testler kullanıcının gerçek veritabanına yazmaz (geçici klasör).
@@ -280,7 +282,7 @@ PDF/Word belgeleri kullanılır. Testler kullanıcının gerçek veritabanına y
 |---|---|
 | **Programın adı** (sayfalar, pencere, kısayol, simge ve günlük dosyası adı) | `cekirdek/ayarlar.py` → `PROGRAM_ADI`. Sonra programı yeniden aç; simge ve kısayol için `python -m araclar.simge_olustur` ve `python -m araclar.kisayol_olustur` çalıştır |
 | Güvenlik payları, hedef itki/ağırlık, uçuş tarzı katsayıları, fizik katsayıları | `elektronik/hesap/katsayilar.py` |
-| Kablo/vida payı (%5) | `elektronik/hesap/agirlik.py` |
+| Kablo/vida payı (%5, drone'da tartılmış değer girilmediyse) | `elektronik/hesap/agirlik.py` |
 | Kullanım amaçları | `drone/modeller.py` |
 | Gemini modelleri, günlük sınır | `arastirma/gemini.py`, `arastirma/ayarlar.py` (ya da Ayarlar sayfası) |
 | Para birimleri, kur türü | `maliyet/para.py`, `maliyet/kur.py` |

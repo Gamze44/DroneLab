@@ -46,7 +46,7 @@ def test_hedefler_kaydedilir_yuk_agirliga_eklenir(ortam) -> None:
     yanit = istemci.put(f"/api/dronelar/{drone}/hedefler", json={"ucus_suresi_dk": 60, "yuk_g": 200, "butce_tl": 5000})
     assert yanit.status_code == 200, yanit.text
     ozet = _ozet(istemci, drone)
-    assert ozet["hedefler"] == {"ucus_suresi_dk": 60, "yuk_g": 200, "butce_tl": 5000, "itki_agirlik": None}
+    assert ozet["hedefler"] == {"ucus_suresi_dk": 60, "yuk_g": 200, "butce_tl": 5000, "itki_agirlik": None, "kablo_vida_g": None}
     assert ozet["agirlik"]["toplam_g"] == pytest.approx(once + 200)  # yük kablo payına katılmaz
     u = ozet["ucus"]
     assert u["hedef_ucus_suresi_dk"] == 60 and u["ucus_suresi_hedefe_ulasiyor_mu"] is False  # yarış dronu 60 dk uçamaz

@@ -72,14 +72,14 @@ Program `http://127.0.0.1:8000` adresinde açılır. Bu adres yalnızca o bilgis
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-Projede **421 otomatik test** vardır ve hepsi geçer; çalışmaları yaklaşık 40 saniye sürer.
+Projede **430 otomatik test** vardır ve hepsi geçer; çalışmaları yaklaşık 40 saniye sürer.
 
 - Testler gerçek Gemini'ye istek atmaz; sahte bir model kullanır.
 - Gerçek veritabanına dokunmaz; her test kendi geçici klasöründe çalışır.
 
 | Alan | Test |
 |---|---:|
-| Elektronik ve uçuş hesapları | 125 |
+| Elektronik ve uçuş hesapları | 134 |
 | Şasi dosyası okuma ve ölçü | 88 |
 | Güvenlik ve sunucu | 78 |
 | Yapay zekâ (asistan, parça önerisi) | 40 |

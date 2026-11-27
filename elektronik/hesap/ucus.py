@@ -198,7 +198,8 @@ class UcusHesaplayici:
         """Ağırlık özetini hesap değerine çevirir; hiç ağırlık yoksa None."""
         if agirlik.toplam_g <= 0:
             return HesapDegeri(None, aciklama="şasi ve parça ağırlıkları girilmemiş")
-        aciklama = "şasi + parçalar + kablo payı" + (" + yük" if agirlik.yuk_g else "")
+        kablo = "tartılmış kablo/vida" if agirlik.kablo_payi_elle_mi else "kablo payı"
+        aciklama = f"şasi + parçalar + {kablo}" + (" + yük" if agirlik.yuk_g else "")
         if not agirlik.eksiksiz_mi:
             aciklama += " (bazı ağırlıklar eksik, gerçek değer daha yüksek)"
         return HesapDegeri(agirlik.toplam_g, agirlik.tahmini, aciklama)
